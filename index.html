@@ -42,7 +42,7 @@ body{
   -webkit-text-size-adjust:100%;
   overflow-x:hidden;
 }
-button{font:inherit;color:inherit}
+button{font:inherit;color:inherit;touch-action:manipulation}
 :focus-visible{outline:3px solid var(--bulb);outline-offset:3px}
 
 .stall{
@@ -108,10 +108,14 @@ button{font:inherit;color:inherit}
 }
 .tub{grid-area:tub;position:relative;height:clamp(430px,calc(100vh - 196px),880px);height:clamp(430px,calc(100dvh - 196px),880px)}
 .tub::before{
-  content:"";position:absolute;inset:8px;border-radius:var(--tub-r,60px);
+  content:"";position:absolute;top:8px;left:8px;right:8px;bottom:8px;border-radius:var(--tub-r,60px);
   box-shadow:0 26px 44px rgba(0,0,0,.6);
 }
-#pool{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline-offset:-2px;border-radius:var(--tub-r,60px)}
+#pool{
+  position:absolute;top:0;left:0;width:100%;height:100%;display:block;
+  touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  outline-offset:-2px;border-radius:var(--tub-r,60px);
+}
 .tub.playing #pool{cursor:none}
 
 .status{
@@ -131,7 +135,7 @@ button{font:inherit;color:inherit}
   color:var(--bulb);font-variant-numeric:tabular-nums;
   text-shadow:0 0 24px rgba(255,209,102,.35);
 }
-.score-num.bump{animation:bump .3s ease-out}
+.score-num.bump,.bowl.bump{animation:bump .3s ease-out}
 @keyframes bump{from{transform:scale(1.18)}to{transform:none}}
 .bowl{
   width:62px;height:62px;border-radius:50%;
@@ -188,7 +192,7 @@ button{font:inherit;color:inherit}
 
 /* 蓋在水池上的紙板：開始與結算 */
 .board{
-  position:absolute;inset:0;z-index:3;display:grid;place-items:center;padding:16px;
+  position:absolute;top:0;left:0;right:0;bottom:0;z-index:3;display:grid;place-items:center;padding:16px;
   border-radius:var(--tub-r,60px);
   background:radial-gradient(ellipse at center,rgba(10,14,40,.18),rgba(10,14,40,.5));
 }
@@ -287,7 +291,7 @@ button{font:inherit;color:inherit}
 }
 
 @media (prefers-reduced-motion:reduce){
-  .boss.pop,.score-num.bump,.stamp.in{animation:none}
+  .boss.pop,.score-num.bump,.bowl.bump,.stamp.in{animation:none}
 }
 </style>
 </head>
@@ -1235,6 +1239,7 @@ function renderHud() {
     el.nets.setAttribute('aria-label', `剩${netsLeft}支紙網`);
   }
   if (hud.bowl !== stats.total) {
+    if (hud.bowl >= 0 && stats.total > hud.bowl) { el.bowl.classList.remove('bump'); void el.bowl.offsetWidth; el.bowl.classList.add('bump'); }
     hud.bowl = stats.total; el.bowl.textContent = stats.total; el.bowl.setAttribute('aria-label', `碗裡${stats.total}條`);
   }
 }
@@ -1283,6 +1288,7 @@ function startGame() {
   if (seeded) { rng = mulberry32(seed); netsMade = 0; }   // 固定亂數時每局從同一個狀態開始
   populate();
   net = newNet(W / 2, H / 2);
+  net.visible = true;                   // 一開始就看得到紙網在池子中央
   for (const kk in fx) fx[kk].length = 0;
   el.start.hidden = true; el.result.hidden = true;
   tub.classList.add('playing');
