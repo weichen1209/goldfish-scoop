@@ -458,8 +458,8 @@ function mulberry32(a) {
   };
 }
 const params = new URLSearchParams(location.search);
-const seed = params.has('seed') ? (parseInt(params.get('seed'), 10) || 1) : (Date.now() % 2147483647);
-const seeded = params.has('seed');
+let seed = params.has('seed') ? (parseInt(params.get('seed'), 10) || 1) : (Date.now() % 2147483647);
+let seeded = params.has('seed');
 let rng = mulberry32(seed);              // 遊戲邏輯用（可用?seed=固定）
 const rand = (a, b) => a + (b - a) * rng();
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -861,6 +861,7 @@ function press() {
   if (n.phase !== 'up') return;
   n.phase = 'sinking'; n.t = 0; n.wantLift = false; n.queued = false;
   n.x = n.tx; n.y = n.ty;               // 下水點就是游標位置
+  n.speed = 0;                          // 只算入水之後的移動，空中甩過來的速度不算
   stats.dips++; lastAction = time;
   wear(CFG.dipCost * paper.mult);
   if (n.strength <= 0) { tear('soak', []); return; }
@@ -964,7 +965,7 @@ function updateNet(dt) {
     if (sp > CFG.waterSpeedCap) { vx *= CFG.waterSpeedCap / sp; vy *= CFG.waterSpeedCap / sp; }
     n.x += vx * dt; n.y += vy * dt;
   } else {
-    const k = 1 - Math.exp(-26 * dt);
+    const k = 1 - Math.exp(-45 * dt);
     n.x += (n.tx - n.x) * k; n.y += (n.ty - n.y) * k;
   }
   const moved = Math.hypot(n.x - ox, n.y - oy);
@@ -1375,7 +1376,8 @@ requestAnimationFrame(frame);
 
 // 測試用：手動推進時間、讀取狀態
 window.__game = {
-  CFG, SPECIES, seed,
+  CFG, SPECIES,
+  setSeed(n) { seed = n; seeded = true; },
   get state() { return state; }, get net() { return net; }, get fish() { return fish; }, get score() { return score; },
   get netsLeft() { return netsLeft; }, get stats() { return stats; }, get world() { return { W, H, scale }; }, get time() { return time; },
   manual(v) { manual = v; acc = 0; },
