@@ -101,13 +101,12 @@ button{font:inherit;color:inherit}
 
 /* 攤位桌面：水池＋狀態＋行情表 */
 .table{
-  flex:1;min-height:0;
-  display:grid;gap:18px 22px;
+  display:grid;gap:16px 22px;align-items:start;
   grid-template-columns:minmax(0,1fr) 300px;
   grid-template-rows:auto 1fr;
   grid-template-areas:"tub status" "tub price";
 }
-.tub{grid-area:tub;position:relative;min-height:440px}
+.tub{grid-area:tub;position:relative;height:clamp(430px,calc(100vh - 196px),880px);height:clamp(430px,calc(100dvh - 196px),880px)}
 .tub::before{
   content:"";position:absolute;inset:8px;border-radius:var(--tub-r,60px);
   box-shadow:0 26px 44px rgba(0,0,0,.6);
@@ -116,15 +115,17 @@ button{font:inherit;color:inherit}
 .tub.playing #pool{cursor:none}
 
 .status{
-  grid-area:status;display:grid;gap:14px 18px;align-items:end;
-  grid-template-columns:1fr 1fr;
+  grid-area:status;display:grid;gap:12px 18px;align-items:end;
+  grid-template-columns:1fr auto;
   grid-template-areas:"score bowl" "nets nets" "paper paper";
 }
 .stat-score{grid-area:score}
 .stat-bowl{grid-area:bowl}
+.stat-nets,.stat-paper{display:flex;align-items:center;gap:12px}
 .stat-nets{grid-area:nets}
 .stat-paper{grid-area:paper}
 .stat-label{display:block;font-size:13px;color:var(--dusk);letter-spacing:.08em;margin-bottom:5px}
+.stat-nets .stat-label,.stat-paper .stat-label{margin:0;flex:none;width:2.4em}
 .score-num{
   display:block;font-family:var(--num);font-weight:800;font-size:58px;line-height:.95;
   color:var(--bulb);font-variant-numeric:tabular-nums;
@@ -133,7 +134,7 @@ button{font:inherit;color:inherit}
 .score-num.bump{animation:bump .3s ease-out}
 @keyframes bump{from{transform:scale(1.18)}to{transform:none}}
 .bowl{
-  width:66px;height:66px;border-radius:50%;
+  width:62px;height:62px;border-radius:50%;
   display:grid;place-items:center;
   border:6px solid var(--sign);
   background:radial-gradient(circle at 40% 35%,#8be2ec,#2fa9c6 70%);
@@ -145,7 +146,7 @@ button{font:inherit;color:inherit}
 .neticon{color:var(--pink);display:block}
 .neticon.torn{color:#6c7099}
 .neticon.using{filter:drop-shadow(0 0 7px rgba(255,209,102,.9))}
-.paper-row{display:flex;align-items:center;gap:12px}
+.paper-row{flex:1;display:flex;align-items:center;gap:12px}
 .bar{flex:1;height:16px;border-radius:3px;background:rgba(255,255,255,.13);overflow:hidden}
 .bar i{display:block;height:100%;background:var(--paper);transform-origin:left center;transition:background-color .3s}
 .bar.mid i{background:var(--bulb)}
@@ -162,7 +163,7 @@ button{font:inherit;color:inherit}
 }
 .pricelist{
   grid-area:price;align-self:start;position:relative;
-  padding:18px 16px 12px;transform:rotate(.8deg);
+  padding:16px 14px 10px;transform:rotate(.8deg);
   box-shadow:0 12px 26px rgba(0,0,0,.42);
 }
 .pricelist::before,.pricelist::after{
@@ -171,19 +172,19 @@ button{font:inherit;color:inherit}
 }
 .pricelist::before{left:14px;transform:rotate(-7deg)}
 .pricelist::after{right:14px;transform:rotate(5deg)}
-.pricelist h2{margin:0 0 6px;font-size:23px;letter-spacing:.08em}
-.pricelist table{width:100%;border-collapse:collapse;font-size:18px}
+.pricelist h2{margin:0 0 4px;font-size:22px;letter-spacing:.08em}
+.pricelist table{width:100%;border-collapse:collapse;font-size:17.5px}
 .pricelist th{font-family:var(--sans);font-weight:400;font-size:12.5px;color:var(--ink-soft);text-align:right;padding:2px 4px 4px;border-bottom:2px solid var(--ink-soft)}
 .pricelist th:first-child{text-align:left}
-.pricelist td{padding:6px 4px;border-bottom:1px dashed rgba(60,40,20,.38);text-align:right;vertical-align:middle;font-variant-numeric:tabular-nums}
+.pricelist td{padding:4px 4px;border-bottom:1px dashed rgba(60,40,20,.38);text-align:right;vertical-align:middle;font-variant-numeric:tabular-nums}
 .pricelist td:first-child{text-align:left}
 .fish-cell{display:flex;align-items:center;gap:8px}
 .fish-cell img{flex:none}
 .fname{display:block;font-weight:700}
-.ftrait{display:block;font-family:var(--sans);font-size:12.5px;color:var(--ink-soft);line-height:1.35}
+.ftrait{display:block;font-family:var(--sans);font-size:12px;color:var(--ink-soft);line-height:1.3}
 .pricelist tr.heavy td{opacity:.5}
 .pricelist tr.heavy .fname{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:var(--sign)}
-.price-note{margin:8px 0 0;font-family:var(--sans);font-size:12.5px;line-height:1.5;color:var(--ink-soft)}
+.price-note{margin:7px 0 0;font-family:var(--sans);font-size:12px;line-height:1.5;color:var(--ink-soft)}
 
 /* 蓋在水池上的紙板：開始與結算 */
 .board{
@@ -248,9 +249,8 @@ button{font:inherit;color:inherit}
 .foot{margin:12px 0 0;font-size:12.5px;color:var(--dusk);line-height:1.6}
 .foot a{color:inherit}
 
-/* 桌機：整個攤位剛好一個畫面 */
-@media (min-width:900px) and (min-height:660px){
-  .stall{height:100vh;height:100dvh}
+@media (min-width:1180px){
+  .table{grid-template-columns:minmax(0,1fr) 330px}
 }
 
 /* 手機：單欄 */
@@ -263,11 +263,13 @@ button{font:inherit;color:inherit}
     grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;
     grid-template-areas:"status" "tub" "price";gap:14px;
   }
-  .tub{height:min(64vh,128vw);min-height:360px}
+  .tub{height:min(64vh,128vw);height:min(64dvh,128vw);min-height:360px}
   .status{
-    grid-template-columns:auto auto auto 1fr;gap:10px 18px;
-    grid-template-areas:"score bowl nets nets" "paper paper paper paper";
+    grid-template-columns:1fr auto auto;gap:10px 18px;
+    grid-template-areas:"score bowl nets" "paper paper paper";
   }
+  .stat-nets{display:block}
+  .stat-nets .stat-label{margin-bottom:5px;width:auto}
   .score-num{font-size:40px}
   .bowl{width:44px;height:44px;border-width:4px;font-size:19px}
   .neticon{width:30px;height:30px}
@@ -374,7 +376,7 @@ button{font:inherit;color:inherit}
         <thead><tr><th scope="col">魚</th><th scope="col">分數</th><th scope="col">重量</th></tr></thead>
         <tbody id="priceRows"></tbody>
       </table>
-      <p class="price-note">重量是撈起來要扣的紙力。劃掉的魚，現在這張紙撈不動。</p>
+      <p class="price-note">重量＝撈起來扣的紙力。劃掉的已經撈不動。</p>
     </section>
   </main>
 
@@ -389,7 +391,7 @@ button{font:inherit;color:inherit}
 /* ---------- 規則數值（規格書第4節） ---------- */
 const CFG = {
   nets: 3,
-  netRadius: 48,
+  netRadius: 50,
   sinkTime: 0.25,        // 網子沉到定位的秒數
   riseTime: 0.14,
   dipCost: 3,            // 每次下水
@@ -413,11 +415,11 @@ const CFG = {
   worldArea: 520000,
 };
 const SPECIES = [
-  { id: 'red',     name: '小紅金魚', points: 10,  weight: 5,  len: 38, cruise: 40,  burst: 260, react: 0.50, respawn: 3,  count: 8, school: true, trait: '反應慢、愛結伴，適合練手' },
-  { id: 'calico',  name: '紅白金魚', points: 20,  weight: 8,  len: 46, cruise: 52,  burst: 300, react: 0.32, respawn: 4,  count: 4, school: true, trait: '會閃，但不算快' },
-  { id: 'demekin', name: '黑凸眼',   points: 35,  weight: 12, len: 50, cruise: 72,  burst: 380, react: 0.18, respawn: 6,  count: 2, trait: '機警，網子還沒到就先逃' },
-  { id: 'koi',     name: '錦鯉',     points: 60,  weight: 26, len: 84, cruise: 34,  burst: 220, react: 0.40, respawn: 10, count: 2, trait: '很重，要對準正中間' },
-  { id: 'gold',    name: '黃金魚',   points: 100, weight: 10, len: 44, cruise: 100, burst: 520, react: 0.12, respawn: 18, count: 1, wander: 0.35, trait: '游得快又直，只能先埋伏' },
+  { id: 'red',     name: '小紅金魚', points: 10,  weight: 5,  len: 42, cruise: 40,  burst: 260, react: 0.50, respawn: 3,  count: 8, school: true, trait: '反應慢、愛結伴，適合練手' },
+  { id: 'calico',  name: '紅白金魚', points: 20,  weight: 8,  len: 50, cruise: 52,  burst: 300, react: 0.32, respawn: 4,  count: 4, school: true, trait: '會閃，但不算快' },
+  { id: 'demekin', name: '黑凸眼',   points: 35,  weight: 12, len: 54, cruise: 72,  burst: 380, react: 0.18, respawn: 6,  count: 2, trait: '機警，網子還沒到就先逃' },
+  { id: 'koi',     name: '錦鯉',     points: 60,  weight: 26, len: 88, cruise: 34,  burst: 220, react: 0.40, respawn: 10, count: 2, trait: '很重，要對準正中間' },
+  { id: 'gold',    name: '黃金魚',   points: 100, weight: 10, len: 48, cruise: 100, burst: 520, react: 0.12, respawn: 18, count: 1, wander: 0.35, trait: '游得快又直，只能先埋伏' },
 ];
 // 稱號門檻以一般紙為準，其他厚度用「門檻÷耗損倍率」換算
 const TITLES = [[0, '老闆送你一條'], [1, '夜市新手'], [250, '有練過'], [450, '撈魚好手'], [650, '夜市傳說'], [850, '老闆的惡夢']];
@@ -435,6 +437,7 @@ const LINES = {
   miss: ['撲空了，魚比你想的快。', '魚跑了。網子在水裡不要亂動。', '差一點。等牠游到正中間再起。'],
   tearSoak: '泡太久，紙化掉了。',
   tearLoad: '太貪心了，紙撐不住這個重量。',
+  tearSpent: '這支紙太弱，撈不動了。',
   nextNet: n => `換一支，還有${n}支。`,
   lastNet: '最後一支了，慢慢來。',
   low: '紙快破了，挑小條的撈。',
@@ -574,12 +577,12 @@ function buildCaustic() {
   const S = 384, cv = document.createElement('canvas');
   cv.width = cv.height = S;
   const c = cv.getContext('2d'), r = mulberry32(77);
-  c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineJoin = 'round';
-  c.shadowColor = 'rgba(255,255,255,.9)'; c.shadowBlur = 6;
-  for (let i = 0; i < 22; i++) {
-    const cx = r() * S, cy = r() * S, rad = 22 + r() * 46, n = 7, pts = [];
-    for (let j = 0; j < n; j++) { const a = j / n * TAU, rr = rad * (0.62 + r() * 0.6); pts.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
-    c.lineWidth = 1.2 + r() * 2.2;
+  c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineJoin = 'round';
+  c.shadowColor = 'rgba(255,255,255,.8)'; c.shadowBlur = 10;
+  for (let i = 0; i < 30; i++) {
+    const cx = r() * S, cy = r() * S, rad = 26 + r() * 40, n = 6 + Math.floor(r() * 3), pts = [];
+    for (let j = 0; j < n; j++) { const a = j / n * TAU, rr = rad * (0.45 + r() * 0.9); pts.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+    c.lineWidth = 0.8 + r() * 1.6;
     for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
       c.beginPath();
       for (let j = 0; j <= n; j++) {
@@ -622,7 +625,7 @@ function resize() {
   const r = tub.getBoundingClientRect();
   const cssW = Math.max(240, r.width), cssH = Math.max(240, r.height);
   dpr = Math.min(window.devicePixelRatio || 1, 2);
-  scale = clamp(Math.sqrt(cssW * cssH / CFG.worldArea), 0.6, 1.3);
+  scale = clamp(Math.sqrt(cssW * cssH / CFG.worldArea), 0.7, 1.3);
   W = cssW / scale; H = cssH / scale;
   canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
   tub.style.setProperty('--tub-r', ((CORNER + RIM) * scale).toFixed(1) + 'px');
@@ -834,7 +837,7 @@ const ICON = {};
 function buildIcons() {
   for (const sp of SPECIES) {
     const cv = document.createElement('canvas'); cv.width = 112; cv.height = 60;
-    const c = cv.getContext('2d'), s = (0.5 + 0.5 * sp.len / 84) * 0.9;
+    const c = cv.getContext('2d'), s = (0.5 + 0.5 * sp.len / 88) * 0.9;
     c.translate(60, 30); c.scale(s, s);
     paintFish(c, sp, makeMarks(sp, mulberry32(sp.len * 13)), 0.5, 0.3);
     ICON[sp.id] = cv.toDataURL('image/png');
@@ -846,6 +849,7 @@ let state = 'title';                     // title | playing | over
 let paper = CFG.papers[prefs.paper];
 let net = null, netsLeft = CFG.nets, netsMade = 0, score = 0, time = 0, held = false, lastAction = 0, missCount = 0;
 let stats = newStats();
+let activePointer = null;
 function newStats() { return { dips: 0, lifts: 0, caught: {}, total: 0, bonus: 0, bestCombo: 0, tearSoak: 0, tearLoad: 0 }; }
 
 function newNet(x, y) {
@@ -904,6 +908,14 @@ function release() {
   else if (n.phase === 'under') doLift();
 }
 
+// 還要多少紙力才撈得起這種魚：網子在空中時要再加一次下水與下沉的耗損
+function needFor(sp, n) {
+  const dip = n.phase === 'up' || n.phase === 'rising' ? CFG.dipCost + CFG.soakRate * CFG.sinkTime : 0;
+  return (dip + sp.weight) * paper.mult;
+}
+const lightest = () => SPECIES.reduce((a, b) => (b.weight < a.weight ? b : a));
+function spent(n) { return n.strength - needFor(lightest(), n) <= 0; }
+
 function onNet(n) {
   const R = CFG.netRadius;
   return fish.filter(f => f.fade >= 1 && Math.hypot(f.x - n.x, f.y - n.y) <= R - 0.35 * f.sp.len);
@@ -950,7 +962,7 @@ function tear(reason, got) {
   n.phase = 'torn'; n.timer = 1.1; n.strength = 0; n.depth = 0; n.shake = 1; n.ready = false; n.wantLift = false; n.queued = false;
   held = false;                          // 新的紙網要重新按才會下水
   netsLeft--;
-  if (reason === 'load') stats.tearLoad++; else stats.tearSoak++;
+  if (reason === 'load') stats.tearLoad++; else if (reason === 'soak') stats.tearSoak++;
   for (const f of got) { f.sx = n.x; f.sy = n.y; startFlee(f); }
   for (const f of fish) if (Math.hypot(f.x - n.x, f.y - n.y) < CFG.splashRadius) alertFish(f, 0.1, n.x, n.y);
   for (let i = 0; i < 12; i++) {
@@ -958,9 +970,9 @@ function tear(reason, got) {
     fx.shards.push({ x: n.x + Math.cos(a) * 14, y: n.y + Math.sin(a) * 14, vx: Math.cos(a) * v, vy: Math.sin(a) * v, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 9, size: 5 + Math.random() * 8, age: 0, life: 0.7 + Math.random() * 0.4 });
   }
   ripple(n.x, n.y, CFG.netRadius * 0.4, CFG.netRadius * 2.2, 0.8);
-  floatText(n.x, n.y - 30, '破了', '#ff8f7a', 26, true);
+  floatText(n.x, n.y - 30, reason === 'spent' ? '撈不動了' : '破了', '#ff8f7a', 26, true);
   sfx.tear();
-  say(reason === 'load' ? LINES.tearLoad : LINES.tearSoak);
+  say(reason === 'load' ? LINES.tearLoad : reason === 'spent' ? LINES.tearSpent : LINES.tearSoak);
 }
 
 function nextNet() {
@@ -999,6 +1011,7 @@ function updateNet(dt) {
   if (inWater) {
     wear((CFG.soakRate * dt + moved * CFG.dragRate) * paper.mult);
     if (n.strength <= 0) { tear('soak', []); return; }
+    if (n.phase === 'under' && spent(n)) { tear('spent', []); return; }
     if (n.speed > CFG.moveScareSpeed) {
       for (const f of fish) if (Math.hypot(f.x - n.x, f.y - n.y) < CFG.moveScareRadius) alertFish(f, CFG.moveScareDelay, n.x, n.y);
       if (Math.random() < dt * 14) ripple(n.x, n.y, CFG.netRadius * 0.8, CFG.netRadius * 1.3, 0.4, 1.4);
@@ -1013,6 +1026,7 @@ function updateNet(dt) {
     n.t += dt; n.depth = Math.max(0, 1 - n.t / CFG.riseTime);
     if (n.t >= CFG.riseTime) {
       n.phase = 'up'; n.depth = 0;
+      if (spent(n)) { tear('spent', []); return; }
       if (n.queued) { const quick = n.wantLift; press(); if (net === n && n.phase === 'sinking') n.wantLift = quick; held = !quick && held; }
     }
   }
@@ -1159,8 +1173,8 @@ function render() {
   if (showNet && n.depth >= 0.5) drawNet(c, n);          // 在水裡：畫在魚下面
   for (const f of fish) drawFishShadow(c, f);
   for (const f of fish) drawFish(c, f);
-  drawCaustic(c, time * 9, time * 5, 1.25, 0.13);
-  drawCaustic(c, -time * 6 + 90, time * 7 + 40, 0.85, 0.09);
+  drawCaustic(c, time * 9, time * 5, 1.5, 0.10);
+  drawCaustic(c, -time * 6 + 90, time * 7 + 40, 1.05, 0.07);
   drawRipples(c);
   c.restore();
   if (showNet && n.depth < 0.5) drawNet(c, n);           // 在空中：畫在最上面
@@ -1175,7 +1189,7 @@ const el = {
   finalScore: $('#finalScore'), stamp: $('#stamp'), resultRows: $('#resultRows'), resultStats: $('#resultStats'), resultBest: $('#resultBest'),
   btnStart: $('#btnStart'), btnAgain: $('#btnAgain'), btnPaper: $('#btnPaper'), btnCopy: $('#btnCopy'), btnSound: $('#btnSound'), btnRestart: $('#btnRestart'),
 };
-const hud = { score: -1, strength: -1, nets: '', bowl: -1 };
+const hud = { score: -1, strength: '', nets: '', bowl: -1 };
 
 function say(text) {
   if (el.boss.textContent === text) return;
@@ -1189,9 +1203,9 @@ function netIcon(kind) {
 const fmt = v => (Math.round(v * 10) / 10).toString();
 function buildPriceRows() {
   el.rows.innerHTML = SPECIES.map(sp =>
-    `<tr data-id="${sp.id}"><td><div class="fish-cell"><img src="${ICON[sp.id]}" alt="" width="56" height="30"><span><span class="fname">${sp.name}</span><span class="ftrait">${sp.trait}</span></span></div></td><td>${sp.points}</td><td>${fmt(sp.weight * paper.mult)}</td></tr>`
+    `<tr data-id="${sp.id}"><td><div class="fish-cell"><img src="${ICON[sp.id]}" alt="" width="50" height="27"><span><span class="fname">${sp.name}</span><span class="ftrait">${sp.trait}</span></span></div></td><td>${sp.points}</td><td>${fmt(sp.weight * paper.mult)}</td></tr>`
   ).join('');
-  hud.strength = -1;
+  hud.strength = '';
 }
 function renderHud() {
   if (hud.score !== score) {
@@ -1200,15 +1214,16 @@ function renderHud() {
   }
   const s = state === 'playing' && net ? clamp(net.strength, 0, 100) : (state === 'over' ? 0 : 100), si = Math.ceil(s);
   el.bar.style.transform = `scaleX(${(s / 100).toFixed(4)})`;
-  if (hud.strength !== si) {
-    hud.strength = si;
+  const sKey = si + (net ? net.phase : '') + state;
+  if (hud.strength !== sKey) {
+    hud.strength = sKey;
     el.strength.textContent = si + '%';
     el.barWrap.setAttribute('aria-valuenow', si);
     el.barWrap.classList.toggle('low', s < 25);
     el.barWrap.classList.toggle('mid', s >= 25 && s < 50);
     for (const tr of el.rows.children) {
       const sp = SPECIES.find(x => x.id === tr.dataset.id);
-      tr.classList.toggle('heavy', state === 'playing' && s - sp.weight * paper.mult <= 0);
+      tr.classList.toggle('heavy', state === 'playing' && net && s - needFor(sp, net) <= 0);
     }
   }
   const torn = CFG.nets - netsLeft, key = state + torn;
@@ -1238,7 +1253,7 @@ function setPaper(id) {
 
 let resultShownAt = 0, shareText = '';
 function gameOver() {
-  state = 'over'; tub.classList.remove('playing'); held = false;
+  state = 'over'; tub.classList.remove('playing'); held = false; activePointer = null;
   const key = prefs.paper, isBest = score > best[key];
   if (isBest) { best[key] = score; store.set(KEY_BEST, best); }
   const title = titleFor(score), rows = [];
@@ -1263,7 +1278,7 @@ function gameOver() {
 }
 function startGame() {
   sfx.unlock(); sfx.tick();
-  state = 'playing'; score = 0; netsLeft = CFG.nets; held = false; missCount = 0;
+  state = 'playing'; score = 0; netsLeft = CFG.nets; held = false; missCount = 0; activePointer = null;
   stats = newStats(); lastAction = time;
   if (seeded) { rng = mulberry32(seed); netsMade = 0; }   // 固定亂數時每局從同一個狀態開始
   populate();
@@ -1275,14 +1290,13 @@ function startGame() {
   say(LINES.start);
 }
 function toTitle() {
-  state = 'title'; net = null; score = 0; netsLeft = CFG.nets; held = false; stats = newStats();
+  state = 'title'; net = null; score = 0; netsLeft = CFG.nets; held = false; stats = newStats(); activePointer = null;
   tub.classList.remove('playing');
   el.result.hidden = true; el.start.hidden = false;
   showBest(); say(LINES.welcome);
 }
 
 /* ---------- 輸入 ---------- */
-let activePointer = null;
 function toWorld(e) { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale }; }
 canvas.addEventListener('pointermove', e => {
   if (state !== 'playing' || !net) return;
@@ -1305,6 +1319,7 @@ function pointerEnd(e) {
 }
 canvas.addEventListener('pointerup', pointerEnd);
 canvas.addEventListener('pointercancel', pointerEnd);
+canvas.addEventListener('lostpointercapture', pointerEnd);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 window.addEventListener('keydown', e => {
@@ -1317,7 +1332,7 @@ window.addEventListener('keyup', e => {
   if (e.code === 'Space') { if (state === 'playing' && held && activePointer === null) release(); }
   else if (e.code in keys) keys[e.code] = false;
 });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (held) { activePointer = null; release(); } });
 
 el.btnStart.addEventListener('click', startGame);
 el.btnAgain.addEventListener('click', () => { if (performance.now() - resultShownAt > 500) startGame(); });
