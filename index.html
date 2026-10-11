@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141833">
+<title>夜市撈金魚</title>
+<meta name="description" content="用紙網撈金魚的網頁小遊戲：紙泡水會變弱，三支紙網能撈幾分？">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%2334b8d2'/%3E%3Cpath d='M48 32c-6-9-17-11-25-5l-10-8 4 13-4 13 10-8c8 6 19 4 25-5z' fill='%23f2542d'/%3E%3Ccircle cx='40' cy='30' r='2.2' fill='%23241a12'/%3E%3C/svg%3E">
+<style>
+:root{
+  --night:#141833;
+  --night-deep:#0d1027;
+  --dusk:#aab0dc;
+  --water:#34b8d2;
+  --fish:#f2542d;
+  --bulb:#ffd166;
+  --sign:#d42a3c;
+  --sign-deep:#7d1220;
+  --paper:#fff8ea;
+  --kraft:#d0aa72;
+  --ink:#2b1e12;
+  --ink-soft:#5b4630;
+  --pink:#ff6fa3;
+  --kai:"Kaiti TC","BiauKai","DFKai-SB","標楷體","STKaiti","KaiTi","Songti TC","Noto Serif TC","PMingLiU",serif;
+  --sans:"PingFang TC","Noto Sans TC","Microsoft JhengHei","Heiti TC",system-ui,sans-serif;
+  --num:ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold",var(--sans);
+  --gutter:clamp(12px,2.4vw,28px);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;
+  font-family:var(--sans);
+  color:var(--paper);
+  background:
+    radial-gradient(circle at 10% 16%, rgba(255,160,90,.17), transparent 24%),
+    radial-gradient(circle at 88% 6%, rgba(255,209,102,.13), transparent 22%),
+    radial-gradient(circle at 74% 96%, rgba(242,84,45,.10), transparent 30%),
+    linear-gradient(var(--night), var(--night-deep));
+  background-attachment:fixed;
+  -webkit-text-size-adjust:100%;
+  overflow-x:hidden;
+}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--bulb);outline-offset:3px}
+
+.stall{
+  min-height:100vh;min-height:100dvh;
+  max-width:1480px;margin:0 auto;
+  padding:0 var(--gutter) 12px;
+  display:flex;flex-direction:column;
+}
+
+/* 燈串 */
+.lights{height:50px;margin:0 calc(-1*var(--gutter));overflow:hidden}
+.lights svg{display:block}
+
+/* 招牌、老闆、工具 */
+.top{display:flex;align-items:flex-end;gap:14px 20px;flex-wrap:wrap;padding:0 0 16px}
+.sign{
+  position:relative;margin:0;display:inline-flex;align-items:center;gap:10px;
+  padding:8px 20px 10px 11px;
+  background:linear-gradient(#e2374b,#c21f33);
+  border:3px solid var(--bulb);border-radius:10px;
+  box-shadow:0 6px 0 var(--sign-deep),0 16px 26px rgba(0,0,0,.45);
+  transform:rotate(-2deg);
+  font-family:var(--kai);font-weight:700;line-height:1;
+}
+.sign::before,.sign::after{content:"";position:absolute;top:-30px;width:2px;height:28px;background:#2a2e57}
+.sign::before{left:24px}
+.sign::after{right:24px}
+.sign-small{
+  writing-mode:vertical-rl;font-size:17px;letter-spacing:.12em;
+  color:var(--sign);background:var(--bulb);border-radius:6px;padding:6px 3px;
+}
+.sign-big{
+  font-size:clamp(34px,4.2vw,50px);letter-spacing:.06em;color:#ffe9a8;
+  text-shadow:0 2px 0 var(--sign-deep),0 0 18px rgba(255,209,102,.35);
+}
+.boss{
+  flex:1 1 280px;max-width:640px;margin:0;min-height:48px;
+  background:var(--paper);color:var(--ink);
+  border-radius:16px 16px 16px 4px;padding:11px 16px 12px;
+  font-size:16px;line-height:1.5;
+  box-shadow:0 8px 20px rgba(0,0,0,.35);
+}
+.boss-tag{font-family:var(--kai);font-weight:700;color:var(--sign);margin-right:.6em}
+.boss.pop{animation:pop .28s cubic-bezier(.3,1.5,.5,1)}
+@keyframes pop{from{transform:scale(.96) translateY(3px)}to{transform:none}}
+.tools{display:flex;gap:8px;margin-left:auto}
+.tool{
+  width:44px;height:44px;border-radius:50%;cursor:pointer;
+  display:grid;place-items:center;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);
+}
+.tool:hover{background:rgba(255,255,255,.14)}
+.tool svg{width:22px;height:22px}
+.tool[aria-pressed="false"] .wave{display:none}
+.tool[aria-pressed="true"] .mute{display:none}
+
+/* 攤位桌面：水池＋狀態＋行情表 */
+.table{
+  flex:1;min-height:0;
+  display:grid;gap:18px 22px;
+  grid-template-columns:minmax(0,1fr) 300px;
+  grid-template-rows:auto 1fr;
+  grid-template-areas:"tub status" "tub price";
+}
+.tub{grid-area:tub;position:relative;min-height:440px}
+.tub::before{
+  content:"";position:absolute;inset:8px;border-radius:var(--tub-r,60px);
+  box-shadow:0 26px 44px rgba(0,0,0,.6);
+}
+#pool{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline-offset:-2px;border-radius:var(--tub-r,60px)}
+.tub.playing #pool{cursor:none}
+
+.status{
+  grid-area:status;display:grid;gap:14px 18px;align-items:end;
+  grid-template-columns:1fr 1fr;
+  grid-template-areas:"score bowl" "nets nets" "paper paper";
+}
+.stat-score{grid-area:score}
+.stat-bowl{grid-area:bowl}
+.stat-nets{grid-area:nets}
+.stat-paper{grid-area:paper}
+.stat-label{display:block;font-size:13px;color:var(--dusk);letter-spacing:.08em;margin-bottom:5px}
+.score-num{
+  display:block;font-family:var(--num);font-weight:800;font-size:58px;line-height:.95;
+  color:var(--bulb);font-variant-numeric:tabular-nums;
+  text-shadow:0 0 24px rgba(255,209,102,.35);
+}
+.score-num.bump{animation:bump .3s ease-out}
+@keyframes bump{from{transform:scale(1.18)}to{transform:none}}
+.bowl{
+  width:66px;height:66px;border-radius:50%;
+  display:grid;place-items:center;
+  border:6px solid var(--sign);
+  background:radial-gradient(circle at 40% 35%,#8be2ec,#2fa9c6 70%);
+  box-shadow:inset 0 3px 8px rgba(0,60,90,.5),0 0 0 2px #fff8ea;
+  font-family:var(--num);font-weight:800;font-size:26px;color:#fff;
+  text-shadow:0 1px 3px rgba(0,50,80,.8);
+}
+.nets{display:flex;gap:6px;align-items:center;min-height:38px}
+.neticon{color:var(--pink);display:block}
+.neticon.torn{color:#6c7099}
+.neticon.using{filter:drop-shadow(0 0 7px rgba(255,209,102,.9))}
+.paper-row{display:flex;align-items:center;gap:12px}
+.bar{flex:1;height:16px;border-radius:3px;background:rgba(255,255,255,.13);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--paper);transform-origin:left center;transition:background-color .3s}
+.bar.mid i{background:var(--bulb)}
+.bar.low i{background:#ff7a59}
+.paper-num{font-family:var(--num);font-weight:700;font-size:20px;min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+
+/* 紙板 */
+.pricelist,.cardboard{
+  color:var(--ink);font-family:var(--kai);
+  background:
+    repeating-linear-gradient(92deg,rgba(110,76,34,.08) 0 2px,transparent 2px 7px),
+    linear-gradient(#d8b680,#c79f66);
+  border-radius:4px;
+}
+.pricelist{
+  grid-area:price;align-self:start;position:relative;
+  padding:18px 16px 12px;transform:rotate(.8deg);
+  box-shadow:0 12px 26px rgba(0,0,0,.42);
+}
+.pricelist::before,.pricelist::after{
+  content:"";position:absolute;top:-9px;width:58px;height:20px;
+  background:rgba(255,244,196,.55);box-shadow:0 1px 2px rgba(0,0,0,.2);
+}
+.pricelist::before{left:14px;transform:rotate(-7deg)}
+.pricelist::after{right:14px;transform:rotate(5deg)}
+.pricelist h2{margin:0 0 6px;font-size:23px;letter-spacing:.08em}
+.pricelist table{width:100%;border-collapse:collapse;font-size:18px}
+.pricelist th{font-family:var(--sans);font-weight:400;font-size:12.5px;color:var(--ink-soft);text-align:right;padding:2px 4px 4px;border-bottom:2px solid var(--ink-soft)}
+.pricelist th:first-child{text-align:left}
+.pricelist td{padding:6px 4px;border-bottom:1px dashed rgba(60,40,20,.38);text-align:right;vertical-align:middle;font-variant-numeric:tabular-nums}
+.pricelist td:first-child{text-align:left}
+.fish-cell{display:flex;align-items:center;gap:8px}
+.fish-cell img{flex:none}
+.fname{display:block;font-weight:700}
+.ftrait{display:block;font-family:var(--sans);font-size:12.5px;color:var(--ink-soft);line-height:1.35}
+.pricelist tr.heavy td{opacity:.5}
+.pricelist tr.heavy .fname{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:var(--sign)}
+.price-note{margin:8px 0 0;font-family:var(--sans);font-size:12.5px;line-height:1.5;color:var(--ink-soft)}
+
+/* 蓋在水池上的紙板：開始與結算 */
+.board{
+  position:absolute;inset:0;z-index:3;display:grid;place-items:center;padding:16px;
+  border-radius:var(--tub-r,60px);
+  background:radial-gradient(ellipse at center,rgba(10,14,40,.18),rgba(10,14,40,.5));
+}
+.board[hidden]{display:none}
+.cardboard{
+  width:min(440px,100%);max-height:100%;overflow:auto;
+  padding:20px 22px 16px;transform:rotate(-1deg);
+  box-shadow:0 18px 40px rgba(0,0,0,.55);
+}
+.cardboard h2{margin:0 0 8px;font-size:30px;letter-spacing:.08em}
+.steps{margin:0 0 14px;padding-left:1.35em;font-size:18.5px;line-height:1.6}
+.papers{border:0;padding:0;margin:0 0 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.papers legend{padding:0;margin-bottom:6px;font-family:var(--sans);font-size:14px;color:var(--ink-soft)}
+.papers label{position:relative;cursor:pointer}
+.papers input{position:absolute;opacity:0;pointer-events:none}
+.papers span{display:block;text-align:center;padding:8px 4px 7px;border:2px solid var(--ink-soft);border-radius:8px;background:rgba(255,248,234,.3)}
+.papers b{display:block;font-size:20px}
+.papers small{font-family:var(--sans);font-size:12px;color:var(--ink-soft)}
+.papers input:checked + span{background:var(--paper);border-color:var(--sign);box-shadow:inset 0 0 0 2px var(--sign)}
+.papers input:focus-visible + span{outline:3px solid #1b4fd8;outline-offset:2px}
+.best{margin:0 0 12px;font-family:var(--sans);font-size:14px;color:var(--ink-soft)}
+.go{
+  display:block;width:100%;cursor:pointer;
+  font-family:var(--kai);font-weight:700;font-size:26px;letter-spacing:.12em;
+  padding:10px 16px 12px;color:#ffe9a8;
+  background:linear-gradient(#e2374b,#c21f33);
+  border:3px solid var(--bulb);border-radius:10px;
+  box-shadow:0 5px 0 var(--sign-deep);
+}
+.go:hover{filter:brightness(1.07)}
+.go:active{transform:translateY(3px);box-shadow:0 2px 0 var(--sign-deep)}
+.cardboard :focus-visible{outline-color:#1b4fd8}
+.keys{margin:10px 0 0;font-family:var(--sans);font-size:12.5px;color:var(--ink-soft)}
+.result-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.result-score{font-family:var(--num);font-weight:800;font-size:62px;line-height:1;color:var(--sign)}
+.result-score span{font-family:var(--kai);font-size:22px;margin-left:4px;color:var(--ink)}
+.stamp{
+  font-weight:700;font-size:23px;letter-spacing:.1em;white-space:nowrap;
+  color:var(--sign);border:3px solid var(--sign);border-radius:8px;padding:6px 10px 7px;
+  transform:rotate(-7deg);
+}
+.stamp.in{animation:stamp .32s cubic-bezier(.2,1.4,.4,1)}
+@keyframes stamp{from{transform:rotate(-7deg) scale(1.7);opacity:0}to{transform:rotate(-7deg);opacity:1}}
+.result-table{width:100%;border-collapse:collapse;font-size:18px;margin-bottom:8px}
+.result-table td{padding:4px 4px;border-bottom:1px dashed rgba(60,40,20,.38);text-align:right;font-variant-numeric:tabular-nums}
+.result-table td:nth-child(1){width:60px;text-align:left}
+.result-table td:nth-child(2){text-align:left}
+.result-table td[colspan]{text-align:left;font-size:16.5px;line-height:1.5}
+.result-stats{margin:0 0 4px;font-family:var(--sans);font-size:14px;color:var(--ink-soft)}
+.result-actions{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:stretch}
+.ghost{
+  cursor:pointer;font-family:var(--sans);font-size:14px;padding:0 12px;
+  color:var(--ink);background:rgba(255,248,234,.4);
+  border:2px solid var(--ink-soft);border-radius:10px;
+}
+.ghost:hover{background:var(--paper)}
+
+.foot{margin:12px 0 0;font-size:12.5px;color:var(--dusk);line-height:1.6}
+.foot a{color:inherit}
+
+/* 桌機：整個攤位剛好一個畫面 */
+@media (min-width:900px) and (min-height:660px){
+  .stall{height:100vh;height:100dvh}
+}
+
+/* 手機：單欄 */
+@media (max-width:899px){
+  .top{align-items:center;padding-bottom:12px}
+  .sign{padding:6px 14px 8px 9px}
+  .sign-small{font-size:14px}
+  .boss{order:3;flex-basis:100%;max-width:none;min-height:70px;font-size:15px}
+  .table{
+    grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;
+    grid-template-areas:"status" "tub" "price";gap:14px;
+  }
+  .tub{height:min(64vh,128vw);min-height:360px}
+  .status{
+    grid-template-columns:auto auto auto 1fr;gap:10px 18px;
+    grid-template-areas:"score bowl nets nets" "paper paper paper paper";
+  }
+  .score-num{font-size:40px}
+  .bowl{width:44px;height:44px;border-width:4px;font-size:19px}
+  .neticon{width:30px;height:30px}
+  .pricelist{transform:none;margin-top:8px}
+  .cardboard{padding:16px 16px 14px}
+  .cardboard h2{font-size:25px}
+  .steps{font-size:16.5px;margin-bottom:10px}
+  .result-score{font-size:50px}
+  .stamp{font-size:19px}
+}
+@media (max-width:380px){
+  .result-actions{grid-template-columns:1fr 1fr}
+  .result-actions .go{grid-column:1/-1}
+  .ghost{padding:8px 6px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .boss.pop,.score-num.bump,.stamp.in{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="stall">
+  <div class="lights" id="lights" aria-hidden="true"></div>
+
+  <header class="top">
+    <h1 class="sign"><span class="sign-small">夜市</span><span class="sign-big">撈金魚</span></h1>
+    <p class="boss" id="boss" aria-live="polite"><span class="boss-tag">老闆</span><span id="bossText">來來來，三支紙網，撈到都算你的。</span></p>
+    <div class="tools">
+      <button class="tool" id="btnSound" type="button" aria-pressed="true" aria-label="音效" title="音效">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/>
+          <path class="wave" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>
+          <path class="mute" d="M16 9.5l5 5M21 9.5l-5 5"/>
+        </svg>
+      </button>
+      <button class="tool" id="btnRestart" type="button" aria-label="重新開始" title="重新開始">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5"/><path d="M4 4.5v4h4"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="table">
+    <div class="tub" id="tub">
+      <canvas id="pool" tabindex="0" aria-label="水池。按住讓紙網下水，放開起網。方向鍵移動，空白鍵下水。"></canvas>
+
+      <section class="board" id="startBoard" aria-labelledby="startTitle">
+        <div class="cardboard">
+          <h2 id="startTitle">玩法</h2>
+          <ol class="steps">
+            <li>按住，紙網下水。泡越久紙越弱。</li>
+            <li>等魚游到網子上，網框會變黃。</li>
+            <li>放開起網。魚太重、紙太弱就會破。</li>
+          </ol>
+          <fieldset class="papers">
+            <legend>紙的厚度</legend>
+            <label><input type="radio" name="paper" value="thick"><span><b>厚紙</b><small>耗損×0.7</small></span></label>
+            <label><input type="radio" name="paper" value="normal"><span><b>一般</b><small>耗損×1</small></span></label>
+            <label><input type="radio" name="paper" value="thin"><span><b>薄紙</b><small>耗損×1.5</small></span></label>
+          </fieldset>
+          <p class="best" id="startBest"></p>
+          <button class="go" id="btnStart" type="button">開始撈</button>
+          <p class="keys">鍵盤也能玩：方向鍵移動，空白鍵下水。</p>
+        </div>
+      </section>
+
+      <section class="board" id="resultBoard" aria-labelledby="resultTitle" hidden>
+        <div class="cardboard">
+          <h2 id="resultTitle">收攤結算</h2>
+          <div class="result-top">
+            <div class="result-score"><output id="finalScore">0</output><span>分</span></div>
+            <div class="stamp" id="stamp"></div>
+          </div>
+          <table class="result-table"><tbody id="resultRows"></tbody></table>
+          <p class="result-stats" id="resultStats"></p>
+          <p class="best" id="resultBest"></p>
+          <div class="result-actions">
+            <button class="go" id="btnAgain" type="button">再撈一次</button>
+            <button class="ghost" id="btnPaper" type="button">換一種紙</button>
+            <button class="ghost" id="btnCopy" type="button">複製成績</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="status" aria-label="目前狀態">
+      <div class="stat-score"><span class="stat-label">分數</span><output class="score-num" id="score">0</output></div>
+      <div class="stat-bowl"><span class="stat-label">碗裡</span><div class="bowl" id="bowl" role="img" aria-label="碗裡0條">0</div></div>
+      <div class="stat-nets"><span class="stat-label">紙網</span><div class="nets" id="nets" role="img" aria-label="剩3支紙網"></div></div>
+      <div class="stat-paper">
+        <span class="stat-label">紙力</span>
+        <div class="paper-row">
+          <div class="bar" id="barWrap" role="meter" aria-label="紙力" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bar"></i></div>
+          <output class="paper-num" id="strength">100%</output>
+        </div>
+      </div>
+    </section>
+
+    <section class="pricelist" aria-label="魚種行情表">
+      <h2>行情表</h2>
+      <table>
+        <thead><tr><th scope="col">魚</th><th scope="col">分數</th><th scope="col">重量</th></tr></thead>
+        <tbody id="priceRows"></tbody>
+      </table>
+      <p class="price-note">重量是撈起來要扣的紙力。劃掉的魚，現在這張紙撈不動。</p>
+    </section>
+  </main>
+
+  <p class="foot">三支紙網都破了就收攤。最高紀錄只存在這台裝置的瀏覽器裡。<a href="https://github.com/weichen1209/goldfish-scoop">原始碼與規格書</a></p>
+</div>
+<noscript>這個遊戲需要開啟JavaScript。</noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- 規則數值（規格書第4節） ---------- */
+const CFG = {
+  nets: 3,
+  netRadius: 48,
+  sinkTime: 0.25,        // 網子沉到定位的秒數
+  riseTime: 0.14,
+  dipCost: 2,            // 每次下水
+  soakRate: 8,           // 泡水每秒
+  dragRate: 0.06,        // 水中每移動1單位
+  comboMult: [1, 1, 1.5, 2],
+  papers: {
+    thick:  { label: '厚紙', mult: 0.7 },
+    normal: { label: '一般紙', mult: 1 },
+    thin:   { label: '薄紙', mult: 1.5 },
+  },
+  splashRadius: 125,     // 下水驚動範圍
+  moveScareSpeed: 60,    // 水中移動超過這個速度會嚇到魚
+  moveScareRadius: 105,
+  moveScareDelay: 0.08,
+  waterSpeedCap: 260,    // 網子在水中的速度上限
+  worldArea: 520000,
+};
+const SPECIES = [
+  { id: 'red',     name: '小紅金魚', points: 10,  weight: 8,  len: 38, cruise: 34, burst: 260, react: 0.50, respawn: 3,  count: 7, trait: '反應慢，適合練手' },
+  { id: 'calico',  name: '紅白金魚', points: 20,  weight: 12, len: 46, cruise: 42, burst: 300, react: 0.38, respawn: 4,  count: 4, trait: '會閃，但不算快' },
+  { id: 'demekin', name: '黑凸眼',   points: 35,  weight: 18, len: 50, cruise: 55, burst: 360, react: 0.22, respawn: 6,  count: 2, trait: '機警，要對準正中間' },
+  { id: 'koi',     name: '錦鯉',     points: 60,  weight: 34, len: 84, cruise: 30, burst: 220, react: 0.40, respawn: 10, count: 2, trait: '很重，紙力不夠別碰' },
+  { id: 'gold',    name: '黃金魚',   points: 100, weight: 15, len: 44, cruise: 95, burst: 520, react: 0.12, respawn: 20, count: 1, trait: '一下水就逃，要先埋伏' },
+];
+const TITLES = [[0, '老闆送你一條'], [1, '夜市新手'], [120, '有練過'], [260, '撈魚好手'], [420, '夜市傳說'], [600, '老闆的惡夢']];
+
+const LINES = {
+  welcome: '來來來，三支紙網，撈到都算你的。',
+  start: '紙很薄。下水要輕，起網要快。',
+  red: ['不錯喔。', '這條算你的。', '手很穩喔，同學。'],
+  calico: ['紅白的，漂亮。', '這條花色不錯。'],
+  demekin: ['黑凸眼不好撈，厲害。', '黑的你也撈得到。'],
+  koi: ['錦鯉也敢撈！紙還好嗎？', '這麼重都上來了。'],
+  gold: ['我的招牌黃金魚……好啦，算你厲害。', '黃金魚被撈走，我今天要賠錢了。'],
+  double: '一網兩條！有練過喔。',
+  triple: '一網三條？你是來踢館的吧。',
+  miss: ['撲空了，魚比你想的快。', '魚跑了。網子在水裡不要亂動。', '差一點。等牠游到正中間再起。'],
+  tearSoak: '泡太久，紙化掉了。',
+  tearLoad: '太貪心了，紙撐不住這個重量。',
+  nextNet: n => `換一支，還有${n}支。`,
+  lastNet: '最後一支了，慢慢來。',
+  low: '紙快破了，挑小條的撈。',
+  idle: ['看這麼久，魚都被你看到害羞了。', '可以先把網子放在魚前面等牠。', '黃金魚要埋伏：網子先下水別動，牠自己會游過來。'],
+  bye: {
+    '老闆送你一條': '沒關係，送你一條小紅帶回家。',
+    '夜市新手': '第一次撈都這樣，再來一次？',
+    '有練過': '有練過喔，下次挑大條的。',
+    '撈魚好手': '好手好手，我的魚快被你撈光了。',
+    '夜市傳說': '你這種客人，我一個晚上遇到一個就夠了。',
+    '老闆的惡夢': '拜託你明天去別攤撈。',
+  },
+};
+
+/* ---------- 小工具 ---------- */
+const $ = s => document.querySelector(s);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+function angDiff(a, b) { let d = (a - b) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; }
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const params = new URLSearchParams(location.search);
+const seed = params.has('seed') ? (parseInt(params.get('seed'), 10) || 1) : (Date.now() % 2147483647);
+const seeded = params.has('seed');
+let rng = mulberry32(seed);              // 遊戲邏輯用（可用?seed=固定）
+const rand = (a, b) => a + (b - a) * rng();
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 無痕模式等情況存不了就算了 */ } },
+};
+const KEY_BEST = 'goldfish.best.v1', KEY_PREFS = 'goldfish.prefs.v1';
+const best = Object.assign({ thick: 0, normal: 0, thin: 0 }, store.get(KEY_BEST, {}));
+const prefs = Object.assign({ paper: 'normal', sound: true }, store.get(KEY_PREFS, {}));
+if (!CFG.papers[prefs.paper]) prefs.paper = 'normal';
+
+/* ---------- 音效（Web Audio合成，不載入檔案） ---------- */
+const sfx = (() => {
+  let ac = null, out = null, buf = null;
+  function audio() {
+    if (!prefs.sound) return null;
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { ac = new AC(); } catch (e) { return null; }
+      out = ac.createGain(); out.gain.value = 0.55; out.connect(ac.destination);
+      const n = Math.floor(ac.sampleRate * 0.6);
+      buf = ac.createBuffer(1, n, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function tone(f0, f1, dur, vol, type, delay) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + (delay || 0);
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(out);
+    o.start(t); o.stop(t + dur + 0.03);
+  }
+  function noise(dur, vol, freq, q, type, delay, f1) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + (delay || 0);
+    const s = a.createBufferSource(); s.buffer = buf;
+    const fl = a.createBiquadFilter(); fl.type = type || 'bandpass';
+    fl.frequency.setValueAtTime(freq, t);
+    if (f1) fl.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    fl.Q.value = q || 1;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(out);
+    s.start(t, Math.random() * 0.2); s.stop(t + dur + 0.03);
+  }
+  return {
+    unlock() { audio(); },
+    plop() { tone(420, 150, 0.13, 0.26, 'sine'); noise(0.10, 0.10, 900, 0.8, 'lowpass'); },
+    lift() { noise(0.22, 0.15, 1500, 0.9, 'bandpass', 0, 700); },
+    got(n) { tone(784, 784, 0.10, 0.2, 'triangle'); tone(1175, 1175, 0.16, 0.2, 'triangle', 0.08); if (n > 1) tone(1568, 1568, 0.2, 0.18, 'triangle', 0.17); },
+    gold() { [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, f, 0.16, 0.18, 'triangle', i * 0.07)); },
+    tear() { noise(0.32, 0.28, 2600, 0.6, 'highpass', 0, 900); tone(330, 196, 0.35, 0.16, 'sawtooth', 0.05); },
+    over(ok) { (ok ? [523, 659, 784, 1047] : [392, 330, 262]).forEach((f, i) => tone(f, f, 0.22, 0.2, 'triangle', i * 0.14)); },
+    tick() { tone(660, 660, 0.05, 0.1, 'square'); },
+  };
+})();
+
+/* ---------- 畫布與世界座標 ---------- */
+const tub = $('#tub'), canvas = $('#pool'), ctx = canvas.getContext('2d');
+const RIM = 20, CORNER = 54;
+let W = 912, H = 570, scale = 1, dpr = 1;
+let bg = null, causticPat = null;
+
+function roundRect(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+const waterPath = c => roundRect(c, RIM, RIM, W - 2 * RIM, H - 2 * RIM, CORNER);
+
+// 水面邊界的有號距離：池內為負
+function sdPool(x, y) {
+  const r = Math.min(CORNER, W / 2 - RIM, H / 2 - RIM);
+  const qx = Math.abs(x - W / 2) - (W / 2 - RIM - r), qy = Math.abs(y - H / 2) - (H / 2 - RIM - r);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+}
+function gradPool(x, y) {
+  const gx = sdPool(x + 1, y) - sdPool(x - 1, y), gy = sdPool(x, y + 1) - sdPool(x, y - 1);
+  const l = Math.hypot(gx, gy) || 1;
+  return { x: gx / l, y: gy / l };
+}
+function pushInside(o, margin) {
+  const d = sdPool(o.x, o.y);
+  if (d > -margin) { const g = gradPool(o.x, o.y); o.x -= g.x * (d + margin); o.y -= g.y * (d + margin); }
+}
+
+function buildCaustic() {
+  const S = 384, cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const c = cv.getContext('2d'), r = mulberry32(77);
+  c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineJoin = 'round';
+  c.shadowColor = 'rgba(255,255,255,.9)'; c.shadowBlur = 6;
+  for (let i = 0; i < 22; i++) {
+    const cx = r() * S, cy = r() * S, rad = 22 + r() * 46, n = 7, pts = [];
+    for (let j = 0; j < n; j++) { const a = j / n * TAU, rr = rad * (0.62 + r() * 0.6); pts.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+    c.lineWidth = 1.2 + r() * 2.2;
+    for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
+      c.beginPath();
+      for (let j = 0; j <= n; j++) {
+        const p = pts[j % n], q = pts[(j + 1) % n], mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+        if (j === 0) c.moveTo(cx + ox + mx, cy + oy + my);
+        else c.quadraticCurveTo(cx + ox + p[0], cy + oy + p[1], cx + ox + mx, cy + oy + my);
+      }
+      c.closePath(); c.stroke();
+    }
+  }
+  causticPat = ctx.createPattern(cv, 'repeat');
+}
+
+function buildStatic() {
+  bg = document.createElement('canvas');
+  bg.width = canvas.width; bg.height = canvas.height;
+  const c = bg.getContext('2d'), k = scale * dpr;
+  c.setTransform(k, 0, 0, k, 0, 0);
+  // 塑膠盆外緣
+  roundRect(c, 2, 2, W - 4, H - 4, CORNER + RIM - 2);
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#d2f1f8'); g.addColorStop(1, '#7dc7dd');
+  c.fillStyle = g; c.fill();
+  c.lineWidth = 2; c.strokeStyle = 'rgba(255,255,255,.75)'; c.stroke();
+  // 水
+  waterPath(c);
+  const w = c.createRadialGradient(W * 0.42, H * 0.36, 40, W / 2, H / 2, Math.max(W, H) * 0.72);
+  w.addColorStop(0, '#66d8e3'); w.addColorStop(0.55, '#2fb0cc'); w.addColorStop(1, '#1681a6');
+  c.fillStyle = w; c.fill();
+  // 盆緣在水面的陰影
+  c.save(); c.clip();
+  c.lineWidth = 26; c.strokeStyle = 'rgba(8,60,90,.34)';
+  c.shadowColor = 'rgba(8,60,90,.55)'; c.shadowBlur = 22 * k;
+  roundRect(c, RIM - 13, RIM - 13, W - 2 * RIM + 26, H - 2 * RIM + 26, CORNER + 13);
+  c.stroke();
+  c.restore();
+}
+
+function resize() {
+  const r = tub.getBoundingClientRect();
+  const cssW = Math.max(240, r.width), cssH = Math.max(240, r.height);
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  scale = clamp(Math.sqrt(cssW * cssH / CFG.worldArea), 0.6, 1.3);
+  W = cssW / scale; H = cssH / scale;
+  canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+  tub.style.setProperty('--tub-r', ((CORNER + RIM) * scale).toFixed(1) + 'px');
+  buildStatic();
+  for (const f of fish) pushInside(f, f.sp.len * 0.35);
+  if (net) { pushInside(net, 6); const t = { x: net.tx, y: net.ty }; pushInside(t, 6); net.tx = t.x; net.ty = t.y; }
+}
+
+/* ---------- 魚 ---------- */
+const STYLE = {
+  red:     { body: '#ff6a3c', edge: '#e23d14', fin: 'rgba(255,140,84,.82)',  shine: 'rgba(255,224,196,.36)' },
+  calico:  { body: '#fffaf2', edge: '#e9ddcf', fin: 'rgba(255,244,236,.8)',  shine: 'rgba(255,255,255,.4)' },
+  demekin: { body: '#3b3548', edge: '#1d1a26', fin: 'rgba(60,54,76,.86)',    shine: 'rgba(160,150,190,.22)', popEyes: true },
+  koi:     { body: '#fdf8ef', edge: '#e5dbca', fin: 'rgba(253,246,235,.8)',  shine: 'rgba(255,255,255,.34)', slim: true },
+  gold:    { body: '#ffe58a', edge: '#e9a01a', fin: 'rgba(255,214,92,.86)',  shine: 'rgba(255,255,236,.62)', bigTail: true },
+};
+let fish = [], respawns = [];
+
+function makeMarks(sp, r) {
+  const m = [];
+  const blob = (c, x0, x1) => m.push({ c, x: x0 + (x1 - x0) * r(), y: (r() - 0.5) * 22, rx: 9 + r() * 10, ry: 7 + r() * 8, a: r() * TAU });
+  if (sp.id === 'calico') { blob('#e8401c', 18, 38); blob('#e8401c', -22, 4); if (r() < 0.6) blob('#e8401c', -6, 16); }
+  if (sp.id === 'koi') { blob('#ef6a1f', 16, 40); blob('#ef6a1f', -24, 2); blob('#24212b', -8, 22); if (r() < 0.5) blob('#24212b', -26, -10); }
+  return m;
+}
+
+function makeFish(sp, fromEdge) {
+  const f = {
+    sp, x: W / 2, y: H / 2, th: rand(0, TAU), v: sp.cruise,
+    turn: 0, turnTarget: 0, turnTimer: 0, pace: 1, paceTimer: 0,
+    phase: rand(0, TAU), state: 'swim', timer: 0, fleeDir: 0, sx: 0, sy: 0,
+    fade: fromEdge ? 0 : 1, marks: makeMarks(sp, rng),
+  };
+  if (fromEdge) {
+    // 從池邊進場，朝池內游
+    const a = rand(0, TAU);
+    let d = 0;
+    while (sdPool(f.x, f.y) < -(sp.len * 0.55) && d < 3000) { d += 8; f.x = W / 2 + Math.cos(a) * d; f.y = H / 2 + Math.sin(a) * d; }
+    pushInside(f, sp.len * 0.55);
+    f.th = a + Math.PI + rand(-0.6, 0.6);
+  } else {
+    for (let i = 0; i < 60; i++) {
+      f.x = rand(RIM, W - RIM); f.y = rand(RIM, H - RIM);
+      if (sdPool(f.x, f.y) < -(sp.len * 0.6 + 10)) break;
+    }
+    pushInside(f, sp.len * 0.6);
+  }
+  return f;
+}
+
+function populate() {
+  fish = []; respawns = [];
+  const k = clamp(W * H / CFG.worldArea, 0.7, 1.25);
+  for (const sp of SPECIES) {
+    const n = sp.id === 'gold' ? 1 : Math.max(1, Math.round(sp.count * k));
+    for (let i = 0; i < n; i++) fish.push(makeFish(sp, false));
+  }
+}
+
+function alertFish(f, delay, sx, sy) {
+  if (f.state === 'flee') return;
+  f.sx = sx; f.sy = sy;
+  if (f.state === 'alert') { if (delay < f.timer) f.timer = delay; return; }
+  f.state = 'alert'; f.timer = delay;
+}
+function startFlee(f) {
+  f.state = 'flee'; f.timer = rand(0.55, 0.95);
+  const dx = f.x - f.sx, dy = f.y - f.sy;
+  const away = Math.hypot(dx, dy) > 8 ? Math.atan2(dy, dx) : f.th;
+  f.fleeDir = away + rand(-0.3, 0.3);
+}
+
+function updateFish(f, dt) {
+  const sp = f.sp;
+  if (f.fade < 1) f.fade = Math.min(1, f.fade + dt / 0.8);
+  if (f.state === 'alert') { f.timer -= dt; if (f.timer <= 0) startFlee(f); }
+  else if (f.state === 'flee') { f.timer -= dt; if (f.timer <= 0) f.state = 'swim'; }
+  const fleeing = f.state === 'flee';
+
+  // 漫游：隔一段時間換一個轉向速度與游速
+  f.turnTimer -= dt;
+  if (f.turnTimer <= 0) { f.turnTimer = rand(0.5, 2.2); f.turnTarget = rng() < 0.3 ? 0 : rand(-1, 1); }
+  f.paceTimer -= dt;
+  if (f.paceTimer <= 0) { f.paceTimer = rand(1.2, 4); f.pace = rng() < 0.15 ? rand(0.25, 0.45) : rand(0.7, 1.25); }
+  f.turn += (f.turnTarget - f.turn) * Math.min(1, dt * 2.5);
+
+  const target = fleeing ? sp.burst : sp.cruise * f.pace;
+  f.v += (target - f.v) * Math.min(1, dt * (fleeing ? 14 : 2.2));
+
+  let dth = fleeing ? angDiff(f.fleeDir, f.th) * Math.min(1, dt * 18) : f.turn * dt;
+  // 靠近池邊就轉回池內
+  const margin = sp.len * 0.5 + 26;
+  const d = sdPool(f.x, f.y);
+  if (d > -margin) {
+    const g = gradPool(f.x, f.y);
+    const inward = Math.atan2(-g.y, -g.x);
+    const near = clamp((d + margin) / margin, 0, 1);
+    dth += angDiff(inward, f.th) * near * (fleeing ? 9 : 4.5) * dt;
+    if (fleeing) f.fleeDir += angDiff(inward, f.fleeDir) * near * 6 * dt;
+  }
+  f.th += dth;
+  f.x += Math.cos(f.th) * f.v * dt;
+  f.y += Math.sin(f.th) * f.v * dt;
+  pushInside(f, sp.len * 0.35);
+  f.phase += dt * (3.2 + f.v * 0.085);
+}
+
+function separateFish(dt) {
+  for (let i = 0; i < fish.length; i++) {
+    const a = fish[i];
+    for (let j = i + 1; j < fish.length; j++) {
+      const b = fish[j], dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy, r = (a.sp.len + b.sp.len) * 0.3;
+      if (d2 < r * r && d2 > 0.01) {
+        const d = Math.sqrt(d2), p = (r - d) / r * 18 * dt;
+        a.x -= dx / d * p; a.y -= dy / d * p; b.x += dx / d * p; b.y += dy / d * p;
+      }
+    }
+  }
+}
+
+function bodyPath(c, slim) {
+  const s = slim ? 0.74 : 1;
+  c.beginPath();
+  c.moveTo(50, 0);
+  c.bezierCurveTo(41, -16 * s, 16, -22 * s, -6, -15 * s);
+  c.bezierCurveTo(-18, -11 * s, -26, -6 * s, -31, -3);
+  c.lineTo(-31, 3);
+  c.bezierCurveTo(-26, 6 * s, -18, 11 * s, -6, 15 * s);
+  c.bezierCurveTo(16, 22 * s, 41, 16 * s, 50, 0);
+  c.closePath();
+}
+function tailPath(c, m) {
+  c.beginPath();
+  c.moveTo(0, -3);
+  c.bezierCurveTo(-8 * m, -10 * m, -20 * m, -23 * m, -31 * m, -21 * m);
+  c.bezierCurveTo(-25 * m, -10 * m, -23 * m, -4 * m, -20 * m, 0);
+  c.bezierCurveTo(-23 * m, 4 * m, -25 * m, 10 * m, -31 * m, 21 * m);
+  c.bezierCurveTo(-20 * m, 23 * m, -8 * m, 10 * m, 0, 3);
+  c.closePath();
+}
+// 在魚的本地座標畫一條魚：頭朝+x，身長約108
+function paintFish(c, sp, marks, phase, wagAmp) {
+  const st = STYLE[sp.id], s = st.slim ? 0.74 : 1;
+  c.fillStyle = st.fin;
+  for (const sgn of [-1, 1]) {
+    c.save(); c.translate(14, sgn * 15 * s); c.rotate(sgn * (0.95 + Math.sin(phase * 0.5) * 0.15));
+    c.beginPath(); c.ellipse(-6, 0, 10, 4.5, 0, 0, TAU); c.fill(); c.restore();
+  }
+  c.save(); c.translate(-30, 0); c.rotate(Math.sin(phase) * wagAmp); tailPath(c, st.bigTail ? 1.18 : 1); c.fill(); c.restore();
+  bodyPath(c, st.slim);
+  const g = c.createLinearGradient(0, -20 * s, 0, 20 * s);
+  g.addColorStop(0, st.edge); g.addColorStop(0.5, st.body); g.addColorStop(1, st.edge);
+  c.fillStyle = g; c.fill();
+  if (marks.length) {
+    c.save(); bodyPath(c, st.slim); c.clip();
+    for (const m of marks) { c.fillStyle = m.c; c.beginPath(); c.ellipse(m.x, m.y, m.rx, m.ry, m.a, 0, TAU); c.fill(); }
+    c.restore();
+  }
+  c.fillStyle = st.shine; c.beginPath(); c.ellipse(10, 0, 26, 4.2 * s, 0, 0, TAU); c.fill();
+  if (st.popEyes) {
+    for (const sgn of [-1, 1]) {
+      c.fillStyle = '#2b2636'; c.beginPath(); c.arc(33, sgn * 15, 7.4, 0, TAU); c.fill();
+      c.fillStyle = '#0b0910'; c.beginPath(); c.arc(35, sgn * 16.5, 3.6, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.arc(36.5, sgn * 15.5, 1.2, 0, TAU); c.fill();
+    }
+  } else {
+    c.fillStyle = '#1b130d';
+    for (const sgn of [-1, 1]) { c.beginPath(); c.arc(37, sgn * 9.5 * s, 2.6, 0, TAU); c.fill(); }
+  }
+}
+function drawFish(c, f) {
+  const s = f.sp.len / 108;
+  c.save();
+  c.globalAlpha = f.fade;
+  c.translate(f.x, f.y); c.rotate(f.th + Math.sin(f.phase) * 0.06); c.scale(s, s);
+  paintFish(c, f.sp, f.marks, f.phase - 0.9, 0.34 + Math.min(0.46, f.v / 400));
+  c.restore();
+}
+function drawFishShadow(c, f) {
+  const s = f.sp.len / 108;
+  c.save();
+  c.globalAlpha = 0.17 * f.fade;
+  c.translate(f.x + 5, f.y + 10); c.rotate(f.th); c.scale(s, s);
+  c.fillStyle = '#04212e'; bodyPath(c, STYLE[f.sp.id].slim); c.fill();
+  c.restore();
+}
+// 行情表與結算用的小圖
+const ICON = {};
+function buildIcons() {
+  for (const sp of SPECIES) {
+    const cv = document.createElement('canvas'); cv.width = 112; cv.height = 60;
+    const c = cv.getContext('2d'), s = (0.5 + 0.5 * sp.len / 84) * 0.9;
+    c.translate(60, 30); c.scale(s, s);
+    paintFish(c, sp, makeMarks(sp, mulberry32(sp.len * 13)), 0.5, 0.3);
+    ICON[sp.id] = cv.toDataURL('image/png');
+  }
+}
+
+/* ---------- 紙網 ---------- */
+let state = 'title';                     // title | playing | over
+let paper = CFG.papers[prefs.paper];
+let net = null, netsLeft = CFG.nets, netsMade = 0, score = 0, time = 0, held = false, lastAction = 0, missCount = 0;
+let stats = newStats();
+function newStats() { return { dips: 0, lifts: 0, caught: {}, total: 0, bonus: 0, bestCombo: 0, tearSoak: 0, tearLoad: 0 }; }
+
+function newNet(x, y) {
+  const r = mulberry32(seed + (++netsMade) * 7919), R = CFG.netRadius, cracks = [];
+  for (let i = 0; i < 9; i++) {
+    const a = r() * TAU, d = (0.1 + r() * 0.55) * R;
+    let px = Math.cos(a) * d, py = Math.sin(a) * d, dir = r() * TAU;
+    const pts = [[px, py]], segs = 3 + Math.floor(r() * 3);
+    for (let s = 0; s < segs; s++) {
+      dir += (r() - 0.5) * 1.4;
+      const l = 6 + r() * 10;
+      px += Math.cos(dir) * l; py += Math.sin(dir) * l;
+      if (Math.hypot(px, py) > R - 7) break;
+      pts.push([px, py]);
+    }
+    if (pts.length > 1) cracks.push(pts);
+  }
+  const hole = [];
+  for (let i = 0; i < 14; i++) { const a = i / 14 * TAU, rr = R * (0.38 + r() * 0.42); hole.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+  return { x, y, tx: x, ty: y, phase: 'up', t: 0, depth: 0, strength: 100, wantLift: false, queued: false, speed: 0, ready: false, cracks, hole, timer: 0, shake: 0, visible: false, warned: false };
+}
+
+function aim(x, y, snap) {
+  if (!net) return;
+  const p = { x, y }; pushInside(p, 6);
+  net.tx = p.x; net.ty = p.y;
+  if (snap || !net.visible) { net.x = p.x; net.y = p.y; }
+  net.visible = true;
+}
+
+function wear(amount) { net.strength -= amount; }
+
+function press() {
+  const n = net;
+  if (state !== 'playing' || !n) return;
+  held = true;
+  if (n.phase === 'rising') { n.queued = true; return; }
+  if (n.phase !== 'up') return;
+  n.phase = 'sinking'; n.t = 0; n.wantLift = false; n.queued = false;
+  n.x = n.tx; n.y = n.ty;               // 下水點就是游標位置
+  stats.dips++; lastAction = time;
+  wear(CFG.dipCost * paper.mult);
+  if (n.strength <= 0) { tear('soak', []); return; }
+  ripple(n.x, n.y, CFG.netRadius * 0.7, CFG.netRadius * 1.9, 0.6);
+  sfx.plop();
+  for (const f of fish) {
+    if (Math.hypot(f.x - n.x, f.y - n.y) < CFG.splashRadius) alertFish(f, f.sp.react * rand(0.9, 1.1), n.x, n.y);
+  }
+}
+function release() {
+  held = false;
+  const n = net;
+  if (state !== 'playing' || !n) return;
+  if (n.phase === 'sinking' || n.queued) n.wantLift = true;
+  else if (n.phase === 'under') doLift();
+}
+
+function onNet(n) {
+  const R = CFG.netRadius;
+  return fish.filter(f => f.fade >= 1 && Math.hypot(f.x - n.x, f.y - n.y) <= R - 0.35 * f.sp.len);
+}
+
+function doLift() {
+  const n = net;
+  n.phase = 'rising'; n.t = 0; n.wantLift = false; n.ready = false;
+  stats.lifts++;
+  const got = onNet(n);
+  ripple(n.x, n.y, CFG.netRadius * 0.5, CFG.netRadius * 1.6, 0.5);
+  splash(n.x, n.y, got.length ? 14 : 7, got.length ? 1 : 0.6);
+  if (!got.length) {
+    sfx.lift();
+    floatText(n.x, n.y - 20, '撲空', '#d9f4fa', 17, true);
+    if (++missCount % 3 === 0) say(pick(LINES.miss));
+    return;
+  }
+  const load = got.reduce((s, f) => s + f.sp.weight, 0) * paper.mult;
+  if (n.strength - load <= 0) { tear('load', got); return; }
+  wear(load);
+  const base = got.reduce((s, f) => s + f.sp.points, 0);
+  const gain = Math.round(base * CFG.comboMult[Math.min(got.length, 3)]);
+  score += gain; stats.bonus += gain - base; stats.total += got.length;
+  stats.bestCombo = Math.max(stats.bestCombo, got.length);
+  let hasGold = false, top = got[0];
+  for (const f of got) {
+    stats.caught[f.sp.id] = (stats.caught[f.sp.id] || 0) + 1;
+    fish.splice(fish.indexOf(f), 1);
+    respawns.push({ sp: f.sp, t: f.sp.respawn });
+    fx.jumps.push({ f, x: f.x, y: f.y, age: 0, life: 0.6 });
+    floatText(f.x, f.y - 14, '+' + f.sp.points, '#ffd166', 24, false);
+    if (f.sp.id === 'gold') hasGold = true;
+    if (f.sp.points > top.sp.points) top = f;
+  }
+  if (got.length > 1) floatText(n.x, n.y - 52, `一網${got.length}條 ×${CFG.comboMult[Math.min(got.length, 3)]}`, '#ffffff', 21, true);
+  if (hasGold) sfx.gold(); else sfx.got(got.length);
+  say(got.length >= 3 ? LINES.triple : got.length === 2 ? LINES.double : pick(LINES[top.sp.id]));
+  if (!n.warned && n.strength < 25) { n.warned = true; say(LINES.low); }
+}
+
+function tear(reason, got) {
+  const n = net;
+  n.phase = 'torn'; n.timer = 1.1; n.strength = 0; n.depth = 0; n.shake = 1; n.ready = false; n.wantLift = false; n.queued = false;
+  held = false;                          // 新的紙網要重新按才會下水
+  netsLeft--;
+  if (reason === 'load') stats.tearLoad++; else stats.tearSoak++;
+  for (const f of got) { f.sx = n.x; f.sy = n.y; startFlee(f); }
+  for (const f of fish) if (Math.hypot(f.x - n.x, f.y - n.y) < CFG.splashRadius) alertFish(f, 0.1, n.x, n.y);
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * TAU, v = 50 + Math.random() * 130;
+    fx.shards.push({ x: n.x + Math.cos(a) * 14, y: n.y + Math.sin(a) * 14, vx: Math.cos(a) * v, vy: Math.sin(a) * v, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 9, size: 5 + Math.random() * 8, age: 0, life: 0.7 + Math.random() * 0.4 });
+  }
+  ripple(n.x, n.y, CFG.netRadius * 0.4, CFG.netRadius * 2.2, 0.8);
+  floatText(n.x, n.y - 30, '破了', '#ff8f7a', 26, true);
+  sfx.tear();
+  say(reason === 'load' ? LINES.tearLoad : LINES.tearSoak);
+}
+
+function nextNet() {
+  if (netsLeft <= 0) { gameOver(); return; }
+  const old = net;
+  net = newNet(old.tx, old.ty);
+  net.visible = old.visible;
+  say(netsLeft === 1 ? LINES.lastNet : LINES.nextNet(netsLeft));
+}
+
+const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
+
+function updateNet(dt) {
+  const n = net;
+  if (n.shake > 0) n.shake = Math.max(0, n.shake - dt * 2.2);
+  if (n.phase === 'torn') { n.timer -= dt; if (n.timer <= 0) nextNet(); return; }
+
+  const kx = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0), ky = (keys.ArrowDown ? 1 : 0) - (keys.ArrowUp ? 1 : 0);
+  if (kx || ky) aim(n.tx + kx * 300 * dt, n.ty + ky * 300 * dt, false);
+
+  const inWater = n.phase === 'sinking' || n.phase === 'under';
+  const ox = n.x, oy = n.y;
+  if (inWater) {
+    // 水的阻力：跟得慢，速度有上限
+    let vx = (n.tx - n.x) * 9, vy = (n.ty - n.y) * 9;
+    const sp = Math.hypot(vx, vy);
+    if (sp > CFG.waterSpeedCap) { vx *= CFG.waterSpeedCap / sp; vy *= CFG.waterSpeedCap / sp; }
+    n.x += vx * dt; n.y += vy * dt;
+  } else {
+    const k = 1 - Math.exp(-26 * dt);
+    n.x += (n.tx - n.x) * k; n.y += (n.ty - n.y) * k;
+  }
+  const moved = Math.hypot(n.x - ox, n.y - oy);
+  n.speed += (moved / dt - n.speed) * Math.min(1, dt * 12);
+
+  if (inWater) {
+    wear((CFG.soakRate * dt + moved * CFG.dragRate) * paper.mult);
+    if (n.strength <= 0) { tear('soak', []); return; }
+    if (n.speed > CFG.moveScareSpeed) {
+      for (const f of fish) if (Math.hypot(f.x - n.x, f.y - n.y) < CFG.moveScareRadius) alertFish(f, CFG.moveScareDelay, n.x, n.y);
+      if (Math.random() < dt * 14) ripple(n.x, n.y, CFG.netRadius * 0.8, CFG.netRadius * 1.3, 0.4, 1.4);
+    }
+    if (!n.warned && n.strength < 25) { n.warned = true; say(LINES.low); }
+  }
+
+  if (n.phase === 'sinking') {
+    n.t += dt; n.depth = Math.min(1, n.t / CFG.sinkTime);
+    if (n.t >= CFG.sinkTime) { n.phase = 'under'; if (n.wantLift) { doLift(); return; } }
+  } else if (n.phase === 'rising') {
+    n.t += dt; n.depth = Math.max(0, 1 - n.t / CFG.riseTime);
+    if (n.t >= CFG.riseTime) {
+      n.phase = 'up'; n.depth = 0;
+      if (n.queued) { const quick = n.wantLift; press(); if (net === n && n.phase === 'sinking') n.wantLift = quick; held = !quick && held; }
+    }
+  }
+  n.ready = n.phase === 'under' && onNet(n).length > 0;
+}
+
+function handlePath(c, R) {
+  c.save(); c.rotate(0.66);
+  roundRect(c, R - 4, -6.5, R * 1.75, 13, 6.5);
+  c.restore();
+}
+function drawNet(c, n) {
+  const R = CFG.netRadius, d = n.depth, lift = 1 - d;
+  c.save();
+  c.translate(n.x + (Math.random() - 0.5) * n.shake * 7, n.y + (Math.random() - 0.5) * n.shake * 7);
+  if (lift > 0.02) {
+    c.save();
+    c.translate(9 * lift, 15 * lift);
+    c.globalAlpha = 0.2 * lift + 0.03; c.fillStyle = '#03222f';
+    c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill();
+    handlePath(c, R); c.fill();
+    c.restore();
+  }
+  const s = 1 + 0.07 * lift;
+  c.scale(s, s);
+  handlePath(c, R); c.fillStyle = '#ff6fa3'; c.fill();
+  // 紙
+  const k = clamp(n.strength / 100, 0, 1), wet = clamp(d * 0.55 + (1 - k) * 0.65, 0, 1);
+  c.fillStyle = `rgba(${Math.round(255 - 34 * wet)},${Math.round(253 - 12 * wet)},${Math.round(244 + 8 * wet)},${(0.94 - 0.4 * wet).toFixed(3)})`;
+  c.beginPath(); c.arc(0, 0, R - 4, 0, TAU);
+  if (n.phase === 'torn') {
+    c.moveTo(n.hole[0][0], n.hole[0][1]);
+    for (let i = 1; i < n.hole.length; i++) c.lineTo(n.hole[i][0], n.hole[i][1]);
+    c.closePath(); c.fill('evenodd');
+  } else {
+    c.fill();
+    const show = Math.min(n.cracks.length, Math.floor((1 - k) * n.cracks.length * 1.15));
+    c.strokeStyle = 'rgba(64,92,108,.55)'; c.lineWidth = 1.1; c.lineJoin = 'round';
+    for (let i = 0; i < show; i++) {
+      const p = n.cracks[i];
+      c.beginPath(); c.moveTo(p[0][0], p[0][1]);
+      for (let j = 1; j < p.length; j++) c.lineTo(p[j][0], p[j][1]);
+      c.stroke();
+    }
+  }
+  // 框
+  c.lineWidth = 7; c.strokeStyle = n.ready ? '#ffd23f' : '#ff6fa3';
+  c.beginPath(); c.arc(0, 0, R - 3.5, 0, TAU); c.stroke();
+  c.lineWidth = 2; c.strokeStyle = 'rgba(255,255,255,.6)';
+  c.beginPath(); c.arc(0, 0, R - 2, -2.5, -1.3); c.stroke();
+  if (n.ready) {
+    c.lineWidth = 3; c.strokeStyle = `rgba(255,210,63,${(0.35 + 0.25 * Math.sin(time * 14)).toFixed(3)})`;
+    c.beginPath(); c.arc(0, 0, R + 5, 0, TAU); c.stroke();
+  }
+  // 水面下的顏色
+  if (d > 0) {
+    c.globalAlpha = 0.3 * d; c.fillStyle = '#1c9fc0';
+    c.beginPath(); c.arc(0, 0, R + 1, 0, TAU); c.fill();
+    handlePath(c, R); c.fill();
+  }
+  c.restore();
+}
+
+/* ---------- 特效 ---------- */
+const FONT_NUM = 'ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
+const FONT_KAI = '"Kaiti TC","BiauKai","DFKai-SB","標楷體","STKaiti","KaiTi","Songti TC","Noto Serif TC","PMingLiU",serif';
+const fx = { ripples: [], drops: [], shards: [], texts: [], jumps: [] };
+function ripple(x, y, r0, r1, life, w) { fx.ripples.push({ x, y, r0, r1, life, w: w || 2.4, age: 0 }); }
+function splash(x, y, n, power) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU, v = (60 + Math.random() * 150) * power, r = CFG.netRadius * 0.6;
+    fx.drops.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.5 + Math.random() * 2.6, age: 0, life: 0.35 + Math.random() * 0.3 });
+  }
+}
+function floatText(x, y, text, color, size, kai) { fx.texts.push({ x, y, text, color, size, kai, age: 0, life: 1.1 }); }
+function updateFx(dt) {
+  for (const key in fx) {
+    const list = fx[key];
+    for (let i = list.length - 1; i >= 0; i--) {
+      const p = list[i];
+      p.age += dt;
+      if (p.age >= p.life) { list.splice(i, 1); continue; }
+      if (p.vx !== undefined) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - 3.2 * dt; p.vy *= 1 - 3.2 * dt; }
+      if (p.vr !== undefined) p.rot += p.vr * dt;
+    }
+  }
+}
+function drawRipples(c) {
+  for (const p of fx.ripples) {
+    const t = p.age / p.life, e = 1 - (1 - t) * (1 - t);
+    c.lineWidth = p.w * (1 - t) + 0.4;
+    c.strokeStyle = `rgba(255,255,255,${(0.55 * (1 - t)).toFixed(3)})`;
+    c.beginPath(); c.arc(p.x, p.y, p.r0 + (p.r1 - p.r0) * e, 0, TAU); c.stroke();
+  }
+}
+function drawFx(c) {
+  for (const p of fx.drops) {
+    c.fillStyle = `rgba(226,250,255,${(0.9 * (1 - p.age / p.life)).toFixed(3)})`;
+    c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill();
+  }
+  for (const p of fx.shards) {
+    c.save(); c.translate(p.x, p.y); c.rotate(p.rot);
+    c.fillStyle = `rgba(255,252,242,${(0.9 * (1 - p.age / p.life)).toFixed(3)})`;
+    c.beginPath(); c.moveTo(-p.size / 2, -p.size / 3); c.lineTo(p.size / 2, -p.size / 4); c.lineTo(p.size / 5, p.size / 2); c.closePath(); c.fill();
+    c.restore();
+  }
+  for (const p of fx.jumps) {
+    const t = p.age / p.life, e = 1 - (1 - t) * (1 - t), s = p.f.sp.len / 108 * (1 + 0.5 * Math.sin(Math.PI * t));
+    c.save();
+    c.globalAlpha = 1 - t * t;
+    c.translate(p.x, p.y - 44 * e); c.rotate(p.f.th + t * 1.4); c.scale(s, s);
+    paintFish(c, p.f.sp, p.f.marks, time * 30, 0.7);
+    c.restore();
+  }
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+  for (const p of fx.texts) {
+    const t = p.age / p.life, e = 1 - (1 - t) * (1 - t);
+    c.globalAlpha = 1 - t * t * t;
+    c.font = `${p.kai ? 700 : 800} ${p.size}px ${p.kai ? FONT_KAI : FONT_NUM}`;
+    c.lineWidth = 4; c.strokeStyle = 'rgba(6,40,58,.8)';
+    c.strokeText(p.text, p.x, p.y - 38 * e);
+    c.fillStyle = p.color; c.fillText(p.text, p.x, p.y - 38 * e);
+  }
+  c.globalAlpha = 1;
+}
+function drawCaustic(c, ox, oy, s, alpha) {
+  c.save();
+  c.globalAlpha = alpha; c.globalCompositeOperation = 'lighter';
+  c.translate(ox, oy); c.scale(s, s);
+  c.fillStyle = causticPat;
+  c.fillRect(-ox / s, -oy / s, W / s, H / s);
+  c.restore();
+}
+
+function render() {
+  const c = ctx, k = scale * dpr;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  c.drawImage(bg, 0, 0);
+  c.setTransform(k, 0, 0, k, 0, 0);
+  const n = net, showNet = state === 'playing' && n && n.visible;
+  c.save();
+  waterPath(c); c.clip();
+  if (showNet && n.depth >= 0.5) drawNet(c, n);          // 在水裡：畫在魚下面
+  for (const f of fish) drawFishShadow(c, f);
+  for (const f of fish) drawFish(c, f);
+  drawCaustic(c, time * 9, time * 5, 1.25, 0.13);
+  drawCaustic(c, -time * 6 + 90, time * 7 + 40, 0.85, 0.09);
+  drawRipples(c);
+  c.restore();
+  if (showNet && n.depth < 0.5) drawNet(c, n);           // 在空中：畫在最上面
+  drawFx(c);
+}
+
+/* ---------- 介面 ---------- */
+const el = {
+  bossBox: $('#boss'), boss: $('#bossText'), score: $('#score'), bowl: $('#bowl'), nets: $('#nets'),
+  barWrap: $('#barWrap'), bar: $('#bar'), strength: $('#strength'), rows: $('#priceRows'),
+  start: $('#startBoard'), result: $('#resultBoard'), startBest: $('#startBest'),
+  finalScore: $('#finalScore'), stamp: $('#stamp'), resultRows: $('#resultRows'), resultStats: $('#resultStats'), resultBest: $('#resultBest'),
+  btnStart: $('#btnStart'), btnAgain: $('#btnAgain'), btnPaper: $('#btnPaper'), btnCopy: $('#btnCopy'), btnSound: $('#btnSound'), btnRestart: $('#btnRestart'),
+};
+const hud = { score: -1, strength: -1, nets: '', bowl: -1 };
+
+function say(text) {
+  if (el.boss.textContent === text) return;
+  el.boss.textContent = text;
+  el.bossBox.classList.remove('pop'); void el.bossBox.offsetWidth; el.bossBox.classList.add('pop');
+}
+function netIcon(kind) {
+  const hole = kind === 'torn' ? '<path d="M10 17l6 3-3 5 7-2 2 6 3-7 6 1-4-5 4-5-7 1-2-6-3 6-6-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' : '';
+  return `<svg class="neticon ${kind}" viewBox="0 0 44 44" width="36" height="36" aria-hidden="true"><line x1="30" y1="30" x2="41" y2="41" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="19" cy="19" r="14" fill="${kind === 'torn' ? 'none' : '#fff8ea'}" stroke="currentColor" stroke-width="4"/>${hole}</svg>`;
+}
+const fmt = v => (Math.round(v * 10) / 10).toString();
+function buildPriceRows() {
+  el.rows.innerHTML = SPECIES.map(sp =>
+    `<tr data-id="${sp.id}"><td><div class="fish-cell"><img src="${ICON[sp.id]}" alt="" width="56" height="30"><span><span class="fname">${sp.name}</span><span class="ftrait">${sp.trait}</span></span></div></td><td>${sp.points}</td><td>${fmt(sp.weight * paper.mult)}</td></tr>`
+  ).join('');
+  hud.strength = -1;
+}
+function renderHud() {
+  if (hud.score !== score) {
+    if (hud.score >= 0 && score > hud.score) { el.score.classList.remove('bump'); void el.score.offsetWidth; el.score.classList.add('bump'); }
+    hud.score = score; el.score.textContent = score;
+  }
+  const s = state === 'playing' && net ? clamp(net.strength, 0, 100) : (state === 'over' ? 0 : 100), si = Math.ceil(s);
+  el.bar.style.transform = `scaleX(${(s / 100).toFixed(4)})`;
+  if (hud.strength !== si) {
+    hud.strength = si;
+    el.strength.textContent = si + '%';
+    el.barWrap.setAttribute('aria-valuenow', si);
+    el.barWrap.classList.toggle('low', s < 25);
+    el.barWrap.classList.toggle('mid', s >= 25 && s < 50);
+    for (const tr of el.rows.children) {
+      const sp = SPECIES.find(x => x.id === tr.dataset.id);
+      tr.classList.toggle('heavy', state === 'playing' && s - sp.weight * paper.mult <= 0);
+    }
+  }
+  const torn = CFG.nets - netsLeft, key = state + torn;
+  if (hud.nets !== key) {
+    hud.nets = key;
+    let html = '';
+    for (let i = 0; i < CFG.nets; i++) html += netIcon(i < torn ? 'torn' : (i === torn && state === 'playing' ? 'using' : 'spare'));
+    el.nets.innerHTML = html;
+    el.nets.setAttribute('aria-label', `剩${netsLeft}支紙網`);
+  }
+  if (hud.bowl !== stats.total) {
+    hud.bowl = stats.total; el.bowl.textContent = stats.total; el.bowl.setAttribute('aria-label', `碗裡${stats.total}條`);
+  }
+}
+function titleFor(s) { let t = TITLES[0][1]; for (const [min, name] of TITLES) if (s >= min) t = name; return t; }
+function showBest() {
+  const b = best[prefs.paper];
+  el.startBest.textContent = b > 0 ? `${paper.label}的最高紀錄：${b}分` : `${paper.label}還沒有紀錄。`;
+}
+function setPaper(id) {
+  if (!CFG.papers[id]) return;
+  prefs.paper = id; paper = CFG.papers[id];
+  store.set(KEY_PREFS, prefs);
+  buildPriceRows(); showBest();
+}
+
+let resultShownAt = 0, shareText = '';
+function gameOver() {
+  state = 'over'; tub.classList.remove('playing'); held = false;
+  const key = prefs.paper, isBest = score > best[key];
+  if (isBest) { best[key] = score; store.set(KEY_BEST, best); }
+  const title = titleFor(score), rows = [];
+  for (const sp of SPECIES) {
+    const k = stats.caught[sp.id] || 0;
+    if (k) rows.push(`<tr><td><img src="${ICON[sp.id]}" alt="" width="56" height="30"></td><td>${sp.name}</td><td>×${k}</td><td>${k * sp.points}</td></tr>`);
+  }
+  if (stats.bonus > 0) rows.push(`<tr><td></td><td>一網多條加成</td><td></td><td>+${stats.bonus}</td></tr>`);
+  if (!rows.length) rows.push('<tr><td colspan="4">這次沒撈到。老闆送你一條小紅金魚，不算分。</td></tr>');
+  el.resultRows.innerHTML = rows.join('');
+  el.finalScore.textContent = score;
+  el.stamp.textContent = title;
+  el.stamp.classList.remove('in'); void el.stamp.offsetWidth; el.stamp.classList.add('in');
+  el.resultStats.textContent = `下水${stats.dips}次，撈到${stats.total}條` + (stats.bestCombo > 1 ? `，最多一網${stats.bestCombo}條。` : '。');
+  el.resultBest.textContent = isBest ? `這是${paper.label}的新紀錄。` : `${paper.label}的最高紀錄：${best[key]}分`;
+  shareText = `我在「夜市撈金魚」用${paper.label}撈到${stats.total}條、${score}分，稱號是「${title}」。${location.origin}${location.pathname}`;
+  el.btnCopy.textContent = '複製成績';
+  el.result.hidden = false; resultShownAt = performance.now();
+  el.btnAgain.focus({ preventScroll: true });
+  sfx.over(score > 0);
+  say(LINES.bye[title]);
+}
+function startGame() {
+  sfx.unlock(); sfx.tick();
+  state = 'playing'; score = 0; netsLeft = CFG.nets; held = false; missCount = 0;
+  stats = newStats(); lastAction = time;
+  if (seeded) { rng = mulberry32(seed); netsMade = 0; }   // 固定亂數時每局從同一個狀態開始
+  populate();
+  net = newNet(W / 2, H / 2);
+  for (const kk in fx) fx[kk].length = 0;
+  el.start.hidden = true; el.result.hidden = true;
+  tub.classList.add('playing');
+  canvas.focus({ preventScroll: true });
+  say(LINES.start);
+}
+function toTitle() {
+  state = 'title'; net = null; score = 0; netsLeft = CFG.nets; held = false; stats = newStats();
+  tub.classList.remove('playing');
+  el.result.hidden = true; el.start.hidden = false;
+  showBest(); say(LINES.welcome);
+}
+
+/* ---------- 輸入 ---------- */
+let activePointer = null;
+function toWorld(e) { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale }; }
+canvas.addEventListener('pointermove', e => {
+  if (state !== 'playing' || !net) return;
+  if (activePointer !== null && e.pointerId !== activePointer) return;
+  const p = toWorld(e); aim(p.x, p.y, false);
+});
+canvas.addEventListener('pointerdown', e => {
+  if (state !== 'playing' || !net || activePointer !== null) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  activePointer = e.pointerId;
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 舊瀏覽器 */ }
+  const p = toWorld(e); aim(p.x, p.y, true);
+  press();
+});
+function pointerEnd(e) {
+  if (e.pointerId !== activePointer) return;
+  activePointer = null;
+  release();
+}
+canvas.addEventListener('pointerup', pointerEnd);
+canvas.addEventListener('pointercancel', pointerEnd);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+window.addEventListener('keydown', e => {
+  if (state !== 'playing' || !net) return;
+  if (e.target.closest && e.target.closest('button,input,a')) return;
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) { net.visible = true; press(); } }
+  else if (e.code in keys) { e.preventDefault(); keys[e.code] = true; net.visible = true; }
+});
+window.addEventListener('keyup', e => {
+  if (e.code === 'Space') { if (state === 'playing' && held && activePointer === null) release(); }
+  else if (e.code in keys) keys[e.code] = false;
+});
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+el.btnStart.addEventListener('click', startGame);
+el.btnAgain.addEventListener('click', () => { if (performance.now() - resultShownAt > 500) startGame(); });
+el.btnPaper.addEventListener('click', toTitle);
+el.btnRestart.addEventListener('click', toTitle);
+el.btnCopy.addEventListener('click', async () => {
+  let ok = false;
+  try { await navigator.clipboard.writeText(shareText); ok = true; } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = shareText; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    ta.remove();
+  }
+  el.btnCopy.textContent = ok ? '已複製' : '複製失敗';
+});
+function syncSound() { el.btnSound.setAttribute('aria-pressed', String(prefs.sound)); el.btnSound.title = prefs.sound ? '音效：開' : '音效：關'; }
+el.btnSound.addEventListener('click', () => {
+  prefs.sound = !prefs.sound; store.set(KEY_PREFS, prefs); syncSound();
+  if (prefs.sound) { sfx.unlock(); sfx.tick(); }
+});
+for (const r of document.querySelectorAll('input[name="paper"]')) {
+  r.checked = r.value === prefs.paper;
+  r.addEventListener('change', () => { if (r.checked) setPaper(r.value); });
+}
+
+/* ---------- 燈串 ---------- */
+function buildLights() {
+  const box = $('#lights'), w = Math.max(320, box.clientWidth), h = 50;
+  const seg = Math.max(3, Math.round(w / 170)), sw = w / seg, cols = ['#ffd166', '#ff9a5c', '#fff1c1', '#ffd166', '#f2665a'];
+  let d = 'M0 5', bulbs = '', n = 0;
+  for (let i = 0; i < seg; i++) {
+    const x0 = i * sw, sag = 30 + (i % 2) * 8;
+    d += ` Q${(x0 + sw / 2).toFixed(1)} ${5 + sag} ${(x0 + sw).toFixed(1)} 5`;
+    for (const t of [0.18, 0.5, 0.82]) {
+      const x = x0 + sw * t, y = 5 + 2 * t * (1 - t) * sag, col = cols[n++ % cols.length];
+      bulbs += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><rect x="-2.5" y="-1" width="5" height="5" rx="1" fill="#2a2e57"/><circle cy="9" r="13" fill="${col}" opacity=".13"/><circle cy="9" r="8" fill="${col}" opacity=".22"/><circle cy="9" r="4.6" fill="${col}"/></g>`;
+    }
+  }
+  box.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><path d="${d}" fill="none" stroke="#2a2e57" stroke-width="2"/>${bulbs}</svg>`;
+}
+
+/* ---------- 主迴圈：固定步長1/120秒 ---------- */
+const STEP = 1 / 120;
+let last = performance.now(), acc = 0, manual = false, idleIndex = 0;
+
+function update(dt) {
+  time += dt;
+  for (const f of fish) updateFish(f, dt);
+  separateFish(dt);
+  for (let i = respawns.length - 1; i >= 0; i--) {
+    respawns[i].t -= dt;
+    if (respawns[i].t <= 0) { fish.push(makeFish(respawns[i].sp, true)); respawns.splice(i, 1); }
+  }
+  if (state === 'playing' && net) {
+    updateNet(dt);
+    if (state === 'playing' && time - lastAction > 12) { lastAction = time; say(LINES.idle[idleIndex++ % LINES.idle.length]); }
+  }
+  updateFx(dt);
+}
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  if (!manual) { acc += dt; while (acc >= STEP) { update(STEP); acc -= STEP; } }
+  render(); renderHud();
+  requestAnimationFrame(frame);
+}
+document.addEventListener('visibilitychange', () => { last = performance.now(); acc = 0; });
+
+/* ---------- 啟動 ---------- */
+buildCaustic();
+buildIcons();
+resize();
+populate();
+buildPriceRows();
+buildLights();
+showBest();
+syncSound();
+new ResizeObserver(() => { resize(); }).observe(tub);
+window.addEventListener('resize', buildLights);
+requestAnimationFrame(frame);
+
+// 測試用：手動推進時間、讀取狀態
+window.__game = {
+  CFG, SPECIES, seed,
+  get state() { return state; }, get net() { return net; }, get fish() { return fish; }, get score() { return score; },
+  get netsLeft() { return netsLeft; }, get stats() { return stats; }, get world() { return { W, H, scale }; }, get time() { return time; },
+  manual(v) { manual = v; acc = 0; },
+  advance(sec) { const n = Math.round(sec / STEP); for (let i = 0; i < n; i++) update(STEP); render(); renderHud(); },
+  start: startGame, aim, press, release, sdPool,
+};
+})();
+</script>
+</body>
+</html>
