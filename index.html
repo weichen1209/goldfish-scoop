@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#141833">
 <title>夜市撈金魚</title>
 <meta name="description" content="用紙網撈金魚的網頁小遊戲：紙泡水會變弱，三支紙網能撈幾分？">
@@ -106,7 +106,7 @@ button{font:inherit;color:inherit;touch-action:manipulation}
   grid-template-rows:auto 1fr;
   grid-template-areas:"tub status" "tub price";
 }
-.tub{grid-area:tub;position:relative;height:clamp(430px,calc(100vh - 196px),880px);height:clamp(430px,calc(100dvh - 196px),880px)}
+.tub{grid-area:tub;position:relative;scroll-margin:10px;height:clamp(430px,calc(100vh - 204px),880px);height:clamp(430px,calc(100dvh - 204px),880px)}
 .tub::before{
   content:"";position:absolute;top:8px;left:8px;right:8px;bottom:8px;border-radius:var(--tub-r,60px);
   box-shadow:0 26px 44px rgba(0,0,0,.6);
@@ -284,10 +284,14 @@ button{font:inherit;color:inherit;touch-action:manipulation}
   .result-score{font-size:50px}
   .stamp{font-size:19px}
 }
-@media (max-width:380px){
+@media (max-width:480px){
   .result-actions{grid-template-columns:1fr 1fr}
   .result-actions .go{grid-column:1/-1}
   .ghost{padding:8px 6px}
+}
+/* 視窗很矮（手機橫放）：水池改成剛好一個畫面高 */
+@media (max-height:560px){
+  .tub{height:calc(100vh - 20px);height:calc(100dvh - 20px);min-height:260px}
 }
 
 @media (prefers-reduced-motion:reduce){
@@ -369,7 +373,7 @@ button{font:inherit;color:inherit;touch-action:manipulation}
         <span class="stat-label">紙力</span>
         <div class="paper-row">
           <div class="bar" id="barWrap" role="meter" aria-label="紙力" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="bar"></i></div>
-          <output class="paper-num" id="strength">100%</output>
+          <output class="paper-num" id="strength" aria-live="off">100%</output>
         </div>
       </div>
     </section>
@@ -384,7 +388,7 @@ button{font:inherit;color:inherit;touch-action:manipulation}
     </section>
   </main>
 
-  <p class="foot">三支紙網都破了就收攤。最高紀錄只存在這台裝置的瀏覽器裡。<a href="https://github.com/weichen1209/goldfish-scoop">原始碼與規格書</a></p>
+  <p class="foot">三支紙網都破了就收攤。最高紀錄只存在這台裝置的瀏覽器裡。<a href="https://github.com/weichen1209/goldfish-scoop" target="_blank" rel="noopener">原始碼與規格書</a></p>
 </div>
 <noscript>這個遊戲需要開啟JavaScript。</noscript>
 
@@ -430,7 +434,7 @@ const TITLES = [[0, '老闆送你一條'], [1, '夜市新手'], [250, '有練過
 
 const LINES = {
   welcome: '來來來，三支紙網，撈到都算你的。',
-  start: '紙很薄。下水要輕，起網要快。',
+  start: '下水要輕，起網要快。',
   red: ['不錯喔。', '這條算你的。', '手很穩喔，同學。'],
   calico: ['紅白的，漂亮。', '這條花色不錯。'],
   demekin: ['黑凸眼不好撈，厲害。', '黑的你也撈得到。'],
@@ -438,6 +442,7 @@ const LINES = {
   gold: ['我的招牌黃金魚……好啦，算你厲害。', '黃金魚被撈走，我今天要賠錢了。'],
   double: '一網兩條！有練過喔。',
   triple: '一網三條？你是來踢館的吧。',
+  many: n => `一網${n}條！再這樣撈我要收攤了。`,
   miss: ['撲空了，魚比你想的快。', '魚跑了。網子在水裡不要亂動。', '差一點。等牠游到正中間再起。'],
   tearSoak: '泡太久，紙化掉了。',
   tearLoad: '太貪心了，紙撐不住這個重量。',
@@ -500,7 +505,7 @@ const sfx = (() => {
       const d = buf.getChannelData(0);
       for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
     }
-    if (ac.state === 'suspended') ac.resume();
+    if (ac.state !== 'running') { const r = ac.resume(); if (r && r.catch) r.catch(() => {}); }
     return ac;
   }
   function tone(f0, f1, dur, vol, type, delay) {
@@ -601,7 +606,7 @@ function buildCaustic() {
 }
 
 function buildStatic() {
-  bg = document.createElement('canvas');
+  if (!bg) bg = document.createElement('canvas');
   bg.width = canvas.width; bg.height = canvas.height;
   const c = bg.getContext('2d'), k = scale * dpr;
   c.setTransform(k, 0, 0, k, 0, 0);
@@ -628,14 +633,21 @@ function buildStatic() {
 function resize() {
   const r = tub.getBoundingClientRect();
   const cssW = Math.max(240, r.width), cssH = Math.max(240, r.height);
+  const oldW = W, oldH = H;
   dpr = Math.min(window.devicePixelRatio || 1, 2);
   scale = clamp(Math.sqrt(cssW * cssH / CFG.worldArea), 0.7, 1.3);
   W = cssW / scale; H = cssH / scale;
   canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
   tub.style.setProperty('--tub-r', ((CORNER + RIM) * scale).toFixed(1) + 'px');
   buildStatic();
-  for (const f of fish) pushInside(f, f.sp.len * 0.35);
-  if (net) { pushInside(net, 6); const t = { x: net.tx, y: net.ty }; pushInside(t, 6); net.tx = t.x; net.ty = t.y; }
+  // 水池大小變了：魚和紙網的位置依比例換算，不要全擠在原本的角落
+  const kx = W / oldW, ky = H / oldH;
+  for (const f of fish) { f.x *= kx; f.y *= ky; pushInside(f, f.sp.len * 0.35); }
+  if (net) {
+    net.x *= kx; net.y *= ky; pushInside(net, 6);
+    const t = { x: net.tx * kx, y: net.ty * ky }; pushInside(t, 6); net.tx = t.x; net.ty = t.y;
+  }
+  if (started) render();                 // 改畫布尺寸會清空畫面，馬上補畫避免閃一下
 }
 
 /* ---------- 魚 ---------- */
@@ -880,7 +892,8 @@ function aim(x, y, snap) {
   if (!net) return;
   const p = { x, y }; pushInside(p, 6);
   net.tx = p.x; net.ty = p.y;
-  if (snap || !net.visible) { net.x = p.x; net.y = p.y; }
+  // 只有在空中才直接到位；已經在水裡就只改目標點，照水中的速度移過去
+  if ((snap || !net.visible) && net.phase === 'up') { net.x = p.x; net.y = p.y; }
   net.visible = true;
 }
 
@@ -890,7 +903,7 @@ function press() {
   const n = net;
   if (state !== 'playing' || !n) return;
   held = true;
-  if (n.phase === 'rising') { n.queued = true; return; }
+  if (n.phase === 'rising' || n.phase === 'torn') { n.queued = true; return; }
   if (n.phase !== 'up') return;
   n.phase = 'sinking'; n.t = 0; n.wantLift = false; n.queued = false;
   n.x = n.tx; n.y = n.ty;               // 下水點就是游標位置
@@ -957,7 +970,7 @@ function doLift() {
   }
   if (got.length > 1) floatText(n.x, n.y - 52, `一網${got.length}條 ×${CFG.comboMult[Math.min(got.length, 3)]}`, '#ffffff', 21, true);
   if (hasGold) sfx.gold(); else sfx.got(got.length);
-  say(got.length >= 3 ? LINES.triple : got.length === 2 ? LINES.double : pick(LINES[top.sp.id]));
+  say(got.length >= 4 ? LINES.many(got.length) : got.length === 3 ? LINES.triple : got.length === 2 ? LINES.double : pick(LINES[top.sp.id]));
   if (!n.warned && n.strength < 25) { n.warned = true; say(LINES.low); }
 }
 
@@ -981,10 +994,11 @@ function tear(reason, got) {
 
 function nextNet() {
   if (netsLeft <= 0) { gameOver(); return; }
-  const old = net;
+  const old = net, again = old.queued && held;   // 破網之後才按下、而且還按著
   net = newNet(old.tx, old.ty);
   net.visible = old.visible;
   say(netsLeft === 1 ? LINES.lastNet : LINES.nextNet(netsLeft));
+  if (again) press();
 }
 
 const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
@@ -1013,6 +1027,7 @@ function updateNet(dt) {
   n.speed += (moved / dt - n.speed) * Math.min(1, dt * 12);
 
   if (inWater) {
+    lastAction = time;
     wear((CFG.soakRate * dt + moved * CFG.dragRate) * paper.mult);
     if (n.strength <= 0) { tear('soak', []); return; }
     if (n.phase === 'under' && spent(n)) { tear('spent', []); return; }
@@ -1031,7 +1046,7 @@ function updateNet(dt) {
     if (n.t >= CFG.riseTime) {
       n.phase = 'up'; n.depth = 0;
       if (spent(n)) { tear('spent', []); return; }
-      if (n.queued) { const quick = n.wantLift; press(); if (net === n && n.phase === 'sinking') n.wantLift = quick; held = !quick && held; }
+      if (n.queued) { const quick = !held; press(); if (net === n && n.phase === 'sinking') n.wantLift = quick; held = !quick; }
     }
   }
   n.ready = n.phase === 'under' && onNet(n).length > 0;
@@ -1256,9 +1271,11 @@ function setPaper(id) {
   buildPriceRows(); showBest();
 }
 
-let resultShownAt = 0, shareText = '';
+let resultShownAt = 0, startedAt = -1e9, shareText = '';
 function gameOver() {
   state = 'over'; tub.classList.remove('playing'); held = false; activePointer = null;
+  const saved = store.get(KEY_BEST, {});
+  for (const k in best) best[k] = Math.max(best[k], +saved[k] || 0);   // 另一個分頁可能存過更高的
   const key = prefs.paper, isBest = score > best[key];
   if (isBest) { best[key] = score; store.set(KEY_BEST, best); }
   const title = titleFor(score), rows = [];
@@ -1293,6 +1310,12 @@ function startGame() {
   el.start.hidden = true; el.result.hidden = true;
   tub.classList.add('playing');
   canvas.focus({ preventScroll: true });
+  startedAt = performance.now();
+  const r = tub.getBoundingClientRect();
+  if (r.bottom > window.innerHeight || r.top < 0) {
+    const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    tub.scrollIntoView({ block: r.height > window.innerHeight ? 'start' : 'end', behavior: calm ? 'auto' : 'smooth' });
+  }
   say(LINES.start);
 }
 function toTitle() {
@@ -1313,6 +1336,8 @@ canvas.addEventListener('pointerdown', e => {
   if (state !== 'playing' || !net || activePointer !== null) return;
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   e.preventDefault();
+  if (performance.now() - startedAt < 400) return;      // 連點開始鈕時，第二下不算下水
+  canvas.focus({ preventScroll: true });
   activePointer = e.pointerId;
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 舊瀏覽器 */ }
   const p = toWorld(e); aim(p.x, p.y, true);
@@ -1331,12 +1356,14 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => {
   if (state !== 'playing' || !net) return;
   if (e.target.closest && e.target.closest('button,input,a')) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) { net.visible = true; press(); } }
   else if (e.code in keys) { e.preventDefault(); keys[e.code] = true; net.visible = true; }
 });
 window.addEventListener('keyup', e => {
   if (e.code === 'Space') { if (state === 'playing' && held && activePointer === null) release(); }
   else if (e.code in keys) keys[e.code] = false;
+  else if (e.key === 'Meta') for (const k in keys) keys[k] = false;   // macOS按住Cmd時收不到其他鍵的keyup
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (held) { activePointer = null; release(); } });
 
@@ -1359,6 +1386,7 @@ function syncSound() { el.btnSound.setAttribute('aria-pressed', String(prefs.sou
 el.btnSound.addEventListener('click', () => {
   prefs.sound = !prefs.sound; store.set(KEY_PREFS, prefs); syncSound();
   if (prefs.sound) { sfx.unlock(); sfx.tick(); }
+  if (state === 'playing') canvas.focus({ preventScroll: true });
 });
 for (const r of document.querySelectorAll('input[name="paper"]')) {
   r.checked = r.value === prefs.paper;
@@ -1383,7 +1411,7 @@ function buildLights() {
 
 /* ---------- 主迴圈：固定步長1/120秒 ---------- */
 const STEP = 1 / 120;
-let last = performance.now(), acc = 0, manual = false, idleIndex = 0;
+let last = performance.now(), acc = 0, manual = false, idleIndex = 0, frameError = false, started = false;
 
 function update(dt) {
   time += dt;
@@ -1403,8 +1431,13 @@ function update(dt) {
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (!manual) { acc += dt; while (acc >= STEP) { update(STEP); acc -= STEP; } }
-  render(); renderHud();
+  try {
+    if (!manual) { acc += dt; while (acc >= STEP) { update(STEP); acc -= STEP; } }
+    render(); renderHud();
+  } catch (err) {
+    if (!frameError) { frameError = true; console.error(err); }
+    acc = 0;
+  }
   requestAnimationFrame(frame);
 }
 document.addEventListener('visibilitychange', () => { last = performance.now(); acc = 0; });
@@ -1418,6 +1451,7 @@ buildPriceRows();
 buildLights();
 showBest();
 syncSound();
+started = true;
 new ResizeObserver(() => { resize(); }).observe(tub);
 window.addEventListener('resize', buildLights);
 requestAnimationFrame(frame);
