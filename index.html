@@ -392,8 +392,8 @@ const CFG = {
   netRadius: 48,
   sinkTime: 0.25,        // 網子沉到定位的秒數
   riseTime: 0.14,
-  dipCost: 2,            // 每次下水
-  soakRate: 8,           // 泡水每秒
+  dipCost: 3,            // 每次下水
+  soakRate: 6,           // 泡水每秒
   dragRate: 0.06,        // 水中每移動1單位
   comboMult: [1, 1, 1.5, 2],
   papers: {
@@ -406,16 +406,21 @@ const CFG = {
   moveScareRadius: 105,
   moveScareDelay: 0.08,
   waterSpeedCap: 260,    // 網子在水中的速度上限
+  schoolRadius: 140,     // 同種魚在這個距離內會結伴
+  schoolAlign: 1.4,
+  schoolCohesion: 0.8,
+  schoolGap: 40,         // 離同伴中心超過這個距離才靠攏
   worldArea: 520000,
 };
 const SPECIES = [
-  { id: 'red',     name: '小紅金魚', points: 10,  weight: 8,  len: 38, cruise: 34, burst: 260, react: 0.50, respawn: 3,  count: 7, trait: '反應慢，適合練手' },
-  { id: 'calico',  name: '紅白金魚', points: 20,  weight: 12, len: 46, cruise: 42, burst: 300, react: 0.38, respawn: 4,  count: 4, trait: '會閃，但不算快' },
-  { id: 'demekin', name: '黑凸眼',   points: 35,  weight: 18, len: 50, cruise: 55, burst: 360, react: 0.22, respawn: 6,  count: 2, trait: '機警，要對準正中間' },
-  { id: 'koi',     name: '錦鯉',     points: 60,  weight: 34, len: 84, cruise: 30, burst: 220, react: 0.40, respawn: 10, count: 2, trait: '很重，紙力不夠別碰' },
-  { id: 'gold',    name: '黃金魚',   points: 100, weight: 15, len: 44, cruise: 95, burst: 520, react: 0.12, respawn: 20, count: 1, trait: '一下水就逃，要先埋伏' },
+  { id: 'red',     name: '小紅金魚', points: 10,  weight: 5,  len: 38, cruise: 40,  burst: 260, react: 0.50, respawn: 3,  count: 8, school: true, trait: '反應慢、愛結伴，適合練手' },
+  { id: 'calico',  name: '紅白金魚', points: 20,  weight: 8,  len: 46, cruise: 52,  burst: 300, react: 0.32, respawn: 4,  count: 4, school: true, trait: '會閃，但不算快' },
+  { id: 'demekin', name: '黑凸眼',   points: 35,  weight: 12, len: 50, cruise: 72,  burst: 380, react: 0.18, respawn: 6,  count: 2, trait: '機警，網子還沒到就先逃' },
+  { id: 'koi',     name: '錦鯉',     points: 60,  weight: 26, len: 84, cruise: 34,  burst: 220, react: 0.40, respawn: 10, count: 2, trait: '很重，要對準正中間' },
+  { id: 'gold',    name: '黃金魚',   points: 100, weight: 10, len: 44, cruise: 100, burst: 520, react: 0.12, respawn: 18, count: 1, wander: 0.35, trait: '游得快又直，只能先埋伏' },
 ];
-const TITLES = [[0, '老闆送你一條'], [1, '夜市新手'], [120, '有練過'], [260, '撈魚好手'], [420, '夜市傳說'], [600, '老闆的惡夢']];
+// 稱號門檻以一般紙為準，其他厚度用「門檻÷耗損倍率」換算
+const TITLES = [[0, '老闆送你一條'], [1, '夜市新手'], [250, '有練過'], [450, '撈魚好手'], [650, '夜市傳說'], [850, '老闆的惡夢']];
 
 const LINES = {
   welcome: '來來來，三支紙網，撈到都算你的。',
@@ -433,7 +438,7 @@ const LINES = {
   nextNet: n => `換一支，還有${n}支。`,
   lastNet: '最後一支了，慢慢來。',
   low: '紙快破了，挑小條的撈。',
-  idle: ['看這麼久，魚都被你看到害羞了。', '可以先把網子放在魚前面等牠。', '黃金魚要埋伏：網子先下水別動，牠自己會游過來。'],
+  idle: ['看這麼久，魚都被你看到害羞了。', '小紅常常兩三條游在一起，一網撈起來分數有加成。', '黃金魚要埋伏：網子先放在牠前面的水裡別動，等牠自己游過來。'],
   bye: {
     '老闆送你一條': '沒關係，送你一條小紅帶回家。',
     '夜市新手': '第一次撈都這樣，再來一次？',
@@ -648,7 +653,7 @@ function makeFish(sp, fromEdge) {
   const f = {
     sp, x: W / 2, y: H / 2, th: rand(0, TAU), v: sp.cruise,
     turn: 0, turnTarget: 0, turnTimer: 0, pace: 1, paceTimer: 0,
-    phase: rand(0, TAU), state: 'swim', timer: 0, fleeDir: 0, sx: 0, sy: 0,
+    phase: rand(0, TAU), state: 'swim', timer: 0, fleeDir: 0, sx: 0, sy: 0, pull: 0,
     fade: fromEdge ? 0 : 1, marks: makeMarks(sp, rng),
   };
   if (fromEdge) {
@@ -699,7 +704,7 @@ function updateFish(f, dt) {
 
   // 漫游：隔一段時間換一個轉向速度與游速
   f.turnTimer -= dt;
-  if (f.turnTimer <= 0) { f.turnTimer = rand(0.5, 2.2); f.turnTarget = rng() < 0.3 ? 0 : rand(-1, 1); }
+  if (f.turnTimer <= 0) { f.turnTimer = rand(0.5, 2.2); f.turnTarget = (rng() < 0.3 ? 0 : rand(-1, 1)) * (sp.wander === undefined ? 1 : sp.wander); }
   f.paceTimer -= dt;
   if (f.paceTimer <= 0) { f.paceTimer = rand(1.2, 4); f.pace = rng() < 0.15 ? rand(0.25, 0.45) : rand(0.7, 1.25); }
   f.turn += (f.turnTarget - f.turn) * Math.min(1, dt * 2.5);
@@ -707,7 +712,7 @@ function updateFish(f, dt) {
   const target = fleeing ? sp.burst : sp.cruise * f.pace;
   f.v += (target - f.v) * Math.min(1, dt * (fleeing ? 14 : 2.2));
 
-  let dth = fleeing ? angDiff(f.fleeDir, f.th) * Math.min(1, dt * 18) : f.turn * dt;
+  let dth = fleeing ? angDiff(f.fleeDir, f.th) * Math.min(1, dt * 18) : (f.turn + f.pull) * dt;
   // 靠近池邊就轉回池內
   const margin = sp.len * 0.5 + 26;
   const d = sdPool(f.x, f.y);
@@ -723,6 +728,26 @@ function updateFish(f, dt) {
   f.y += Math.sin(f.th) * f.v * dt;
   pushInside(f, sp.len * 0.35);
   f.phase += dt * (3.2 + f.v * 0.085);
+}
+
+// 結伴：同種魚朝同伴的平均方向與中心靠攏
+function schoolFish() {
+  const r2 = CFG.schoolRadius * CFG.schoolRadius;
+  for (const f of fish) {
+    f.pull = 0;
+    if (!f.sp.school || f.state !== 'swim') continue;
+    let cx = 0, cy = 0, hx = 0, hy = 0, n = 0;
+    for (const o of fish) {
+      if (o === f || o.sp !== f.sp) continue;
+      const dx = o.x - f.x, dy = o.y - f.y;
+      if (dx * dx + dy * dy > r2) continue;
+      cx += o.x; cy += o.y; hx += Math.cos(o.th); hy += Math.sin(o.th); n++;
+    }
+    if (!n) continue;
+    cx /= n; cy /= n;
+    f.pull = angDiff(Math.atan2(hy, hx), f.th) * CFG.schoolAlign;
+    if (Math.hypot(cx - f.x, cy - f.y) > CFG.schoolGap) f.pull += angDiff(Math.atan2(cy - f.y, cx - f.x), f.th) * CFG.schoolCohesion;
+  }
 }
 
 function separateFish(dt) {
@@ -1198,7 +1223,8 @@ function renderHud() {
     hud.bowl = stats.total; el.bowl.textContent = stats.total; el.bowl.setAttribute('aria-label', `碗裡${stats.total}條`);
   }
 }
-function titleFor(s) { let t = TITLES[0][1]; for (const [min, name] of TITLES) if (s >= min) t = name; return t; }
+const titleMin = min => (min <= 1 ? min : Math.round(min / paper.mult / 10) * 10);
+function titleFor(s) { let t = TITLES[0][1]; for (const [min, name] of TITLES) if (s >= titleMin(min)) t = name; return t; }
 function showBest() {
   const b = best[prefs.paper];
   el.startBest.textContent = b > 0 ? `${paper.label}的最高紀錄：${b}分` : `${paper.label}還沒有紀錄。`;
@@ -1340,6 +1366,7 @@ let last = performance.now(), acc = 0, manual = false, idleIndex = 0;
 
 function update(dt) {
   time += dt;
+  schoolFish();
   for (const f of fish) updateFish(f, dt);
   separateFish(dt);
   for (let i = respawns.length - 1; i >= 0; i--) {
